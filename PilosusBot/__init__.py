@@ -62,8 +62,13 @@ def create_app(config_name):
     from .webhook import webhook as webhook_blueprint
     app.register_blueprint(webhook_blueprint, url_prefix='/webhook')
 
+    # user authentication/registration
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
+    # administration dashboard
+    from .admin import admin as admin_blueprint
+    app.register_blueprint(admin_blueprint, url_prefix='/admin')
 
     # TODO
     #from .api_1_0 import api as api_1_0_blueprint
