@@ -1,0 +1,9 @@
+<p>Dear user,</p>
+<p>You are invited to collaborate on our platform. To accept an invitation
+   <a href="{{ url_for('auth.invite_accept', id=id, token=token, _external=True) }}">click here</a>.</p>
+<p>Alternatively, you can paste the following link in your browser's address bar:</p>
+<p>{{ url_for('auth.invite_accept', id=id, token=token, _external=True) }}</p>
+<p>If you don't want to participate simply ignore this message.</p>
+<p>Sincerely,</p>
+<p>PilosusBot Team</p>
+<p><small>Note: replies to this email address are not monitored.</small></p>

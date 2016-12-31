@@ -1,0 +1,14 @@
+Dear user,
+
+You are invited to collaborate on our platform. To accept an invitation click on the following link:
+
+{{ url_for('auth.invite_accept', id=id, token=token, _external=True) }}
+
+If you don't want to participate simply ignore this message.
+
+Sincerely,
+
+PilosusBot Team
+
+Note: replies to this email address are not monitored.
+

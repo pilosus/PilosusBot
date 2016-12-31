@@ -1,0 +1,8 @@
+include README.rst
+include LICENSE
+recursive-include docs *.rst *.py Makefile make.bat .placeholder
+prune docs/_build
+recursive-include tests *.py
+recursive-include PilosusBot/main *
+recursive-include PilosusBot/static *
+recursive-include PilosusBot/templates *

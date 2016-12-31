@@ -1,0 +1,23 @@
+{% set page = 'invite' %}
+{% extends "ctrl/base.html" %}
+{% import "ctrl/_macros.html" as macros %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Invite New User - {{ super() }}{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>Invite User</h1>
+</div>
+  {{ wtf.quick_form(form) }}
+
+<h2>List of invited users</h2>
+
+{% include 'auth/_invites.html' %}
+{% if pagination %}
+<div class="pagination">
+    {{ macros.pagination_widget(pagination, 'auth.invite_request') }}
+</div>
+{% endif %}
+
+{% endblock %}

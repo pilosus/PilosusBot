@@ -1,0 +1,21 @@
+<table class="table table-hover followers">
+  <thead>
+    <tr>
+      <th>User</th>
+      <th>Invited</th>
+      <th>Confirmed</th>
+    </tr>
+  </thead>
+  {% for user in users %}
+  <tr class="{% if not user.confirmed %}unconfirmed{% endif %}">
+    <td>{% if user.confirmed %}
+      {{ user.email }} [<a href="{{ url_for('main.user', username=user.username) }}">{{ user.username }}</a>]
+      {% else %}
+        {{ user.email }}
+      {% endif %}
+    </td>
+    <td>{{ moment(user.member_since).fromNow() }}</td>
+    <td>{{ user.confirmed }}</td>
+  </tr>
+  {% endfor %}
+</table>

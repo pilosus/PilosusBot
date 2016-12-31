@@ -1,0 +1,16 @@
+{% set page = 'user' %}
+{% set subpage = 'change_email' %}
+
+{% extends "auth/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Change Email Address {{ super() }}{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>Change Your Email Address</h1>
+</div>
+<div class="col-md-4">
+    {{ wtf.quick_form(form) }}
+</div>
+{% endblock %}
