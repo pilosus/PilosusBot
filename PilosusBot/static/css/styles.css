@@ -1,0 +1,192 @@
+/* HTML5 */
+article, section, aside, hgroup, nav, header, footer, figure, figcaption {
+  display: block;
+}
+
+/* HTML5 */
+article, section, aside, hgroup, nav, header, footer, figure, figcaption {
+  display: block;
+}
+
+/* main: User profile */
+.profile-thumbnail {
+    position: absolute;
+}
+.profile-header {
+    min-height: 260px;
+    margin-left: 280px;
+}
+
+/* main: Post */
+section.post-tabs {
+    margin-top: 16px;
+}
+ul.posts {
+    list-style-type: none;
+    padding: 0px;
+    margin: 16px 0px 0px 0px;
+    border-top: 1px solid #e0e0e0;
+}
+section.post-tabs ul.posts {
+    margin: 0px;
+    border-top: none;
+}
+
+ul.posts li.post {
+    padding: 8px;
+    border-bottom: 1px solid #e0e0e0;
+}
+ul.posts li.post:hover {
+    background-color: #f0f0f0;
+}
+div.post-data {
+    float: right;
+}
+div.post-author {
+    font-weight: bold;
+}
+div.post-thumbnail {
+    position: absolute;
+}
+div.post-content {
+    margin-left: 48px;
+    min-height: 48px;
+}
+div.post-footer {
+    text-align: right;
+}
+
+/* main: Category */
+div.category {
+    display: flex;
+    margin-bottom: 10px;
+}
+.category-image {
+    flex: 0 0 10%;
+}
+.category-body {
+    flex: 1;
+}
+
+/* ctrl: Table */
+.table.img-list > tbody > tr > td {
+    vertical-align: middle;
+}
+/* ctrl: Comments, Posts, Uploads, Users iterables */
+ul.ctrl-list {
+    list-style-type: none;
+    padding: 0px;
+    margin: 16px 0px 0px 0px;
+}
+ul.ctrl-list li.ctrl-item {
+    margin-left: 0px;
+    padding: 8px 8px 8px 0px;
+    border-bottom: 1px solid #e0e0e0;
+}
+ul.ctrl-list li.ctrl-item:nth-child(1) {
+    border-top: 1px solid #e0e0e0;
+}
+ul.ctrl-list li.ctrl-item:hover {
+    background-color: #f0f0f0;
+}
+ul.ctrl-list li.ctrl-item.unread, .unread {
+    background-color: #f0f0f0;
+}
+.unconfirmed { background-color: #f0f0f0; }
+div.ctrl-item-date {
+    float: right;
+}
+div.ctrl-item-author {
+    font-weight: bold;
+}
+div.ctrl-item-thumbnail {
+    position: absolute;
+}
+div.ctrl-item-body {
+    padding: 2px 0;
+}
+div.ctrl-item-checkbox {
+    position: absolute;
+    margin-top: 40px;
+}
+.on-check {
+    display: none;
+}
+div.ctrl-item-control {
+    margin-left: 40px;
+    height: 30px;
+}
+div.ctrl-item-content {
+    margin-left: 48px;
+    min-height: 48px;
+}
+div.ctrl-item-form {
+    margin: 16px 0px 16px 32px;
+}
+
+/* Pagination macro */
+section.pagination {
+    width: 100%;
+    text-align: right;
+    padding: 0px;
+    margin: 0px;
+}
+
+/* Pagedown preview for Post, Category forms */
+div.flask-pagedown-preview {
+    margin: 10px 0px 10px 0px;
+    border: 1px solid #e0e0e0;
+    padding: 4px;
+}
+div.flask-pagedown-preview h1 {
+    font-size: 140%;
+}
+div.flask-pagedown-preview h2 {
+    font-size: 130%;
+}
+div.flask-pagedown-preview h3 {
+    font-size: 120%;
+}
+.post-body h1 {
+    font-size: 140%;
+}
+.post-body h2 {
+    font-size: 130%;
+}
+.post-body h3 {
+    font-size: 120%;
+}
+.table.followers tr {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* Bootstrap Tagsinput  */
+.bootstrap-tagsinput {
+    width: 100% !important;
+}
+
+.label-block {
+    display: block;
+    text-align: left;
+}
+
+#uploads-control .tt-menu {
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.tt-suggestion.tt-cursor {
+  color: #fff;
+  background-color: #0097cf;
+}
+
+.tt-menu {
+  width: 100%;
+  margin: 12px 0;
+  padding: 8px 0;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 5px 10px rgba(0,0,0,.2);
+}

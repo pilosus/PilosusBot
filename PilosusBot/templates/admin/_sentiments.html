@@ -1,0 +1,39 @@
+<ul class="ctrl-list">
+    {% for sentiment in sentiments %}
+    <li id="sentiment{{ sentiment.id }}" class="ctrl-item">
+
+        <div class="ctrl-item-content">
+            <span class="glyphicon glyphicon-signal"></span>
+            <span class="label label-{{sentiment.score|score_level}}"
+                  title="{{ sentiment.score|score_desc}}"> {{ sentiment.score }}</span>
+
+            <span class="glyphicon glyphicon-tag"></span>
+            <span class="label label-primary"> {{ sentiment.language.code }}</span>
+            by
+            <span class="glyphicon glyphicon-user"></span>{{ sentiment.author.username }}
+            <div class="ctrl-item-date">{{ moment(sentiment.timestamp).fromNow() }}</div>
+            <div class="ctrl-item-body">
+                <p>
+                    {% if sentiment.body_html %}
+                    {{ sentiment.body_html | safe }}
+                    {% else %}
+                    {{ sentiment.body }}
+                    {% endif %}
+                </p>
+
+                <div>
+                    {% if current_user == sentiment.author or
+                    current_user.can(Permission.ADMINISTER) %}
+                    <a class="btn btn-xs btn-default" href="{{ url_for('.edit_sentiment', id=sentiment.id) }}" title="Edit">
+                        <span class="glyphicon glyphicon-pencil"></span>
+                    </a>
+                    <a class="btn btn-xs btn-default confirm" href="{{ url_for('.remove_sentiment', id=sentiment.id) }}" title="Remove">
+                        <span class="glyphicon glyphicon-remove"></span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>

@@ -1,0 +1,28 @@
+{% extends "info/base.html" %}
+
+{% block title %}Dashboard{{ super() }}{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.44/css/bootstrap-datetimepicker.min.css" />
+{% endblock %}
+
+{% block navbar %}{{ super() }}{% endblock %}
+
+{% block navbar_left_items %}
+{% if current_user.can(Permission.MODERATE) %}
+<li {% if page == 'sentiments' %}class="active"{% endif %}><a href="{{ url_for('admin.sentiments') }}">Sentiments</a></li>
+{% endif %}
+
+{% if current_user.can(Permission.ADMINISTER) %}
+<li {% if page == 'invite' %}class="active"{% endif %}><a href="{{ url_for('auth.invite_request') }}">Users</a></li>
+{% endif %}
+{% endblock %}
+
+{% block content %}{{ super() }}{% endblock %}
+
+{% block page_content %}{{ super() }}{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.44/js/bootstrap-datetimepicker.min.js"></script>
+{% endblock %}

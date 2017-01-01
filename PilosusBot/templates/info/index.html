@@ -1,0 +1,30 @@
+{% set page = 'home' %}
+{% extends "info/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Documentation {{ super() }}{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>PilosusBot Documentation</h1>
+</div>
+<section class="content">
+    <div class="row">
+        <div class="col-md-9">
+            <section>
+                ...
+            </section>
+        </div>
+        <div class="col-md-3">
+            <section>
+                ...
+            </section>
+
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% endblock %}
