@@ -10,7 +10,7 @@ from ..decorators import permission_required, admin_required
 from ..utils import generate_password
 from .forms import LoginForm, RegistrationForm, ChangePasswordForm,\
     PasswordResetRequestForm, PasswordResetForm, ChangeEmailForm,\
-    InviteRequestForm, InviteAcceptForm
+    InviteRequestForm, InviteAcceptForm, EditProfileForm, EditProfileAdminForm
 
 
 # requests injection
@@ -58,7 +58,8 @@ def logout():
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
     if current_app.config['APP_REGISTRATION_OPEN'] is False:
-        flash('Registration for new users is by invitation only. Please contact administration.', 'info')
+        flash('Registration for new users is by invitation only. '
+              'Please contact administration.', 'info')
         return redirect(url_for('info.index'))
     form = RegistrationForm()
     if form.validate_on_submit():
@@ -244,12 +245,12 @@ def change_email(token):
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
     page = request.args.get('page', 1, type=int)
-    pagination = user.posts.order_by(Sentiment.timestamp.desc()).paginate(
+    pagination = user.sentiments.order_by(Sentiment.timestamp.desc()).paginate(
         page, per_page=current_app.config['APP_ITEMS_PER_PAGE'],
         error_out=False)
-    posts = pagination.items
+    sentiments = pagination.items
     return render_template('auth/user.html',
-                           user=user, posts=posts,
+                           user=user, sentiments=sentiments,
                            pagination=pagination)
 
 
@@ -267,7 +268,7 @@ def edit_profile():
     form.name.data = current_user.name
     form.location.data = current_user.location
     form.about_me.data = current_user.about_me
-    return render_template('ctrl/edit_profile.html', form=form)
+    return render_template('auth/edit_profile.html', form=form)
 
 
 @auth.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
@@ -294,4 +295,4 @@ def edit_profile_admin(id):
     form.name.data = user.name
     form.location.data = user.location
     form.about_me.data = user.about_me
-    return render_template('ctrl/edit_profile.html', form=form, user=user)
+    return render_template('auth/edit_profile.html', form=form, user=user)

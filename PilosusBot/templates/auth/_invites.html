@@ -10,7 +10,7 @@
   {% for user in users %}
   <tr class="{% if not user.confirmed %}unconfirmed{% endif %}">
     <td>{% if user.confirmed %}
-      {{ user.email }} [{{ user.username }}]
+      {{ user.email }} [<a href="{{ url_for('.user', username=user.username) }}">{{ user.username }}</a>]
       {% else %}
         {{ user.email }}
       {% endif %}

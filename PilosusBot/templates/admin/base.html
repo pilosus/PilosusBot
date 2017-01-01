@@ -16,7 +16,7 @@
 {% if current_user.can(Permission.ADMINISTER) %}
 <li {% if page == 'languages' %}class="active"{% endif %}><a href="{{ url_for('admin.languages') }}">Languages</a></li>
 
-<li {% if page == 'invite' %}class="active"{% endif %}><a href="{{ url_for('auth.invite_request') }}">Users</a></li>
+<li {% if page == 'users' %}class="active"{% endif %}><a href="{{ url_for('auth.invite_request') }}">Users</a></li>
 {% endif %}
 {% endblock %}
 
