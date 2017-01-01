@@ -1,3 +1,6 @@
+from polyglot.detect import Detector
+from flask import current_app
+
 def generate_password(length=10):
     """Generate rnadom password of the given length.
     """
@@ -40,3 +43,20 @@ def map_value_from_range_to_new_range(old_value, old_slice=slice(-1.0, 1.0), new
            (old_slice.stop - old_slice.start) * \
            (new_slice.stop - new_slice.start) + \
            new_slice.start
+
+
+def detect_language(text):
+    """
+    Return language code, fall back to app's default language if detected language not in the DB.
+    :param text: str
+    :return: Language instance
+    """
+    from .models import Language
+
+    detector = Detector(text)
+    lang = Language.query.filter_by(code=detector.language.code).first()
+
+    if lang:
+        return lang
+    else:
+        return Language.query.filter_by(code=current_app.config['APP_LANG_FALLBACK']).first()

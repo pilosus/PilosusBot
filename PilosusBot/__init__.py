@@ -9,6 +9,9 @@ from flask_pagedown import PageDown
 from flask_wtf.csrf import CsrfProtect
 from config import config, Config
 from celery import Celery
+from inspect import getmembers, isfunction
+import PilosusBot.jinja_filters
+
 
 bootstrap = Bootstrap()
 mail = Mail()
@@ -27,10 +30,10 @@ login_manager.login_message_category = 'warning'
 
 def create_app(config_name):
     app = Flask(__name__)
-    #template_filters = {name: function
-    #                    for name, function in getmembers(jinja_filters)
-    #                    if isfunction(function)}
-    #app.jinja_env.filters.update(template_filters)
+    template_filters = {name: function
+                        for name, function in getmembers(jinja_filters)
+                        if isfunction(function)}
+    app.jinja_env.filters.update(template_filters)
 
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
@@ -68,7 +71,7 @@ def create_app(config_name):
 
     # administration dashboard
     from .admin import admin as admin_blueprint
-    app.register_blueprint(admin_blueprint, url_prefix='/admin')
+    app.register_blueprint(admin_blueprint, url_prefix='/dashboard')
 
     # TODO
     #from .api_1_0 import api as api_1_0_blueprint

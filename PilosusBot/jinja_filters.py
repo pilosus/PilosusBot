@@ -1,10 +1,13 @@
+from flask import current_app
+
+
 def permissions2str(n):
     """Convert permission representation into a string representation.
 
     Used as a Jinja2 custom filter.
     """
-    perms = {0: 'a', 1: 's', 2: 'm', 3: 'u',
-             4: 'c', 5: 'w', 6: 'f', 7: 'r'}
+    perms = {0: '[NA]', 1: '[NA]', 2: '[NA]', 3: '[NA]',
+             4: '[NA]', 5: '[ADMINISTER]', 6: '[MODERATE]', 7: '[READ]'}
     perm_str = "{0:0>8}".format(bin(n).lstrip('0b'))
     result = ''
     for k in perms.keys():
@@ -32,3 +35,31 @@ def pluralize(counter, singular_postfix='', plural_postfix='s'):
         return singular_postfix
     else:
         return plural_postfix
+
+
+def score_level(score):
+    """
+    Return CSS class associated with a given sentiment score.
+
+    Usage in a template:
+    <span class="label label-{{ 0.5|score_level }}"> -> <span class="label label-default">
+
+    :param score: float
+    :return: str
+    """
+    levels = current_app.config['APP_SCORE_LEVELS']
+    return levels[score].css
+
+
+def score_desc(score):
+    """
+    Return string describing level pf the given score.
+
+    Usage in a template:
+    <span title="{{ 0.0|score_desc }}"> -> <span title="Very negative">
+
+    :param score: float
+    :return: str
+    """
+    levels = current_app.config['APP_SCORE_LEVELS']
+    return levels[score].desc

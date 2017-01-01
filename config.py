@@ -2,6 +2,7 @@
 
 import os
 from dotenv import load_dotenv
+from collections import namedtuple
 
 # load env variables from `.env` file, like Heroku does
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -48,9 +49,22 @@ class Config:
     APP_MAIL_SENDER = '{0} Mailer <{1}>'.format(APP_NAME, MAIL_USERNAME)
 
     APP_LANGUAGES = ['ru', 'de', 'en', 'fr']
-    APP_LANG_FALLBACK = 'en'
+    APP_LANG_FALLBACK = 'ru'
     APP_ALLOWED_TAGS = ['b', 'strong', 'i', 'a', 'code', 'pre']
     APP_ALLOWED_ATTRIBUTES = {'a': ['href']}
+
+    # access named tuple like this: APP_SCORE_LEVELS[0.5].desc
+    # desc - description, css - css class
+    Score = namedtuple('Score', ['desc', 'css'])
+    APP_SCORE_LEVELS = {0.0: Score('Very negative', 'danger'),
+                        0.25: Score('Negative', 'warning'),
+                        0.375: Score('Slightly negative', 'warning'),
+                        0.5: Score('Neutral', 'default'),
+                        0.625: Score('Slightly positive', 'info'),
+                        0.75: Score('Positive', 'info'),
+                        1.0: Score('Very positive', 'success'),
+                        }
+
 
     @staticmethod
     def init_app(app):
