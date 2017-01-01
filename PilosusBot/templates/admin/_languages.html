@@ -1,0 +1,15 @@
+<ul class="ctrl-list">
+    {% for lang in languages %}
+    {% set sentiments_count = lang.sentiments.count() %}
+    <li id="lang{{ lang.code }}" class="ctrl-item">
+        <a href="{{ url_for('admin.language', code=lang.code) }}">{{ lang.code }}</a>
+        ({{ lang.code|code2name }}, {{ sentiments_count }} sentiment{{ sentiments_count|pluralize("", "s") }})
+            {% if current_user.can(Permission.ADMINISTER) %}
+            <a class="btn btn-xs btn-danger confirm" href="{{ url_for('.remove_language', code=lang.code) }}"
+               title="Remove language and all associated sentiments">
+                <span class="glyphicon glyphicon-remove"></span>
+            </a>
+            {% endif %}
+    </li>
+    {% endfor %}
+</ul>

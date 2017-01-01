@@ -1,6 +1,6 @@
 {% extends "info/base.html" %}
 
-{% block title %}Dashboard{{ super() }}{% endblock %}
+{% block title %}Dashboard {{ super() }}{% endblock %}
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.44/css/bootstrap-datetimepicker.min.css" />
@@ -14,6 +14,8 @@
 {% endif %}
 
 {% if current_user.can(Permission.ADMINISTER) %}
+<li {% if page == 'languages' %}class="active"{% endif %}><a href="{{ url_for('admin.languages') }}">Languages</a></li>
+
 <li {% if page == 'invite' %}class="active"{% endif %}><a href="{{ url_for('auth.invite_request') }}">Users</a></li>
 {% endif %}
 {% endblock %}

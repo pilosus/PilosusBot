@@ -1,4 +1,5 @@
 from polyglot.detect import Detector
+from polyglot.detect import langids as langs
 from flask import current_app
 
 def generate_password(length=10):
@@ -60,3 +61,32 @@ def detect_language(text):
         return lang
     else:
         return Language.query.filter_by(code=current_app.config['APP_LANG_FALLBACK']).first()
+
+
+def is_valid_lang_code(code):
+    """
+    Return True if given two-letter language code exists in polyglot library; False otherwise.
+
+    :param code: str (two-letter ISO 639-1 language code)
+    :return: bool
+    """
+    return code in langs.isoLangs
+
+
+def is_valid_lang_name(lang):
+    """
+    Return True if given language name in English exists in polyglot library; False otherwise.
+    :param lang: str (language name in English)
+    :return: bool
+    """
+    return lang.title() in Detector.supported_languages()
+
+
+def lang_code_to_lang_name(code):
+    """
+    Return language name in English for a given language code.
+
+    :param code: str (two-letter ISO 639-1 language code)
+    :return: str
+    """
+    return langs.isoLangs[code]['name']

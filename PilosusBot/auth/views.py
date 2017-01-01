@@ -4,15 +4,16 @@ from flask_login import login_user, logout_user, login_required, \
     current_user
 from . import auth
 from .. import db
-from ..models import User, Permission, Role
+from ..models import User, Permission, Role, Sentiment
 from ..email import send_email
-from ..decorators import permission_required
+from ..decorators import permission_required, admin_required
 from ..utils import generate_password
 from .forms import LoginForm, RegistrationForm, ChangePasswordForm,\
     PasswordResetRequestForm, PasswordResetForm, ChangeEmailForm,\
     InviteRequestForm, InviteAcceptForm
 
 
+# requests injection
 @auth.before_app_request
 def before_request():
     if current_user.is_authenticated:
@@ -30,6 +31,7 @@ def unconfirmed():
     return render_template('auth/unconfirmed.html')
 
 
+# login/logout
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     registration_open = current_app.config['APP_REGISTRATION_OPEN']
@@ -52,6 +54,7 @@ def logout():
     return redirect(url_for('info.index'))
 
 
+# registration/confirmation
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
     if current_app.config['APP_REGISTRATION_OPEN'] is False:
@@ -95,6 +98,7 @@ def resend_confirmation():
     return redirect(url_for('info.index'))
 
 
+# password change/reset
 @auth.route('/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
@@ -148,7 +152,7 @@ def password_reset(token):
     return render_template('auth/reset_password.html', form=form)
 
 
-# TODO
+# invites
 @auth.route('/invite', methods=['GET', 'POST'])
 @permission_required(Permission.ADMINISTER)
 def invite_request():
@@ -166,7 +170,6 @@ def invite_request():
                    'auth/email/invite', id=user.id, token=token)
         flash('An invitation has been sent by email.', 'info')
         return redirect(url_for('info.index'))
-    # TODO
     page = request.args.get('page', 1, type=int)
     # find invited users, sort them so that unconfirmed comes first,
     # sort then all users by date
@@ -203,10 +206,10 @@ def invite_accept(id, token):
         else:
             flash('The confirmation link is invalid or has expired.', 'warning')
         return redirect(url_for('info.index'))
-    # TODO
     return render_template('auth/invite_accept.html', form=form, user=user)
 
 
+# change email
 @auth.route('/change-email', methods=['GET', 'POST'])
 @login_required
 def change_email_request():
@@ -236,3 +239,59 @@ def change_email(token):
     return redirect(url_for('info.index'))
 
 
+# user profile
+@auth.route('/user/<username>')
+def user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    page = request.args.get('page', 1, type=int)
+    pagination = user.posts.order_by(Sentiment.timestamp.desc()).paginate(
+        page, per_page=current_app.config['APP_ITEMS_PER_PAGE'],
+        error_out=False)
+    posts = pagination.items
+    return render_template('auth/user.html',
+                           user=user, posts=posts,
+                           pagination=pagination)
+
+
+@auth.route('/edit-profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    form = EditProfileForm()
+    if form.validate_on_submit():
+        current_user.name = form.name.data
+        current_user.location = form.location.data
+        current_user.about_me = form.about_me.data
+        db.session.add(current_user)
+        flash('Your profile has been updated.', 'success')
+        return redirect(url_for('.user', username=current_user.username))
+    form.name.data = current_user.name
+    form.location.data = current_user.location
+    form.about_me.data = current_user.about_me
+    return render_template('ctrl/edit_profile.html', form=form)
+
+
+@auth.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_profile_admin(id):
+    user = User.query.get_or_404(id)
+    form = EditProfileAdminForm(user=user)
+    if form.validate_on_submit():
+        user.email = form.email.data
+        user.username = form.username.data
+        user.confirmed = form.confirmed.data
+        user.role = Role.query.get(form.role.data)
+        user.name = form.name.data
+        user.location = form.location.data
+        user.about_me = form.about_me.data
+        db.session.add(user)
+        flash('The profile has been updated.', 'success')
+        return redirect(url_for('.user', username=user.username))
+    form.email.data = user.email
+    form.username.data = user.username
+    form.confirmed.data = user.confirmed
+    form.role.data = user.role_id
+    form.name.data = user.name
+    form.location.data = user.location
+    form.about_me.data = user.about_me
+    return render_template('ctrl/edit_profile.html', form=form, user=user)

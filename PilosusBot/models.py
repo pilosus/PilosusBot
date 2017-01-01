@@ -292,8 +292,10 @@ class Language(db.Model):
     """
     __tablename__ = 'languages'
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(2), index=True)
-    sentiments = db.relationship('Sentiment', backref='language', lazy='dynamic')
+    code = db.Column(db.String(2), index=True, unique=True)
+    name = db.Column(db.String(30), nullable=True)
+    sentiments = db.relationship('Sentiment', backref='language', lazy='dynamic',
+                                 cascade='all, delete-orphan')
 
     @staticmethod
     def insert_basic_languages():

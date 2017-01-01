@@ -1,0 +1,36 @@
+{% set page = 'languages' %}
+{% extends "admin/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "admin/_macros.html" as macros %}
+{% block title %}Sentiments - {{ super() }}{% endblock %}
+
+{% block page_content %}
+
+<h2>Sentiments for {{ language.code|code2name }} language</h2>
+
+<div>
+  {% include 'admin/_sentiments.html' %}
+</div>
+{% if pagination %}
+<div class="pagination">
+    {{ macros.pagination_widget(pagination, 'admin.sentiments') }}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{{ pagedown.include_pagedown() }}
+
+<script>
+ $(function () {
+     $('#datetimepicker1').datetimepicker({
+	 locale: moment.locale(),
+	 sideBySide: true,
+	 format: 'YYYY-MM-DD HH:mm:ss',
+	 defaultDate: "{{ datetimepicker }}"
+     });
+ });
+</script>
+{% endblock %}

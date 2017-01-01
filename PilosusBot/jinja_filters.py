@@ -1,5 +1,5 @@
 from flask import current_app
-
+from .utils import lang_code_to_lang_name
 
 def permissions2str(n):
     """Convert permission representation into a string representation.
@@ -63,3 +63,10 @@ def score_desc(score):
     """
     levels = current_app.config['APP_SCORE_LEVELS']
     return levels[score].desc
+
+
+def code2name(code):
+    """
+    Convert language code to language name.
+    """
+    return lang_code_to_lang_name(code)

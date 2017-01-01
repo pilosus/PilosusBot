@@ -29,7 +29,11 @@
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
               <li {% if page == 'home' %}class="active"{% endif %}><a href="{{ url_for('info.index') }}">Home</a></li>
+
 	        {% block navbar_left_items %}
+              {% if current_user.can(Permission.MODERATE) %}
+              <li><a href="{{ url_for('admin.index') }}">Dashboard</a></li>
+              {% endif %}
 	        {% endblock %}
             </ul>
 
