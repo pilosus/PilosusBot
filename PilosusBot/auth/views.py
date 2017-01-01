@@ -147,6 +147,7 @@ def password_reset(token):
             return redirect(url_for('info.index'))
     return render_template('auth/reset_password.html', form=form)
 
+
 # TODO
 @auth.route('/invite', methods=['GET', 'POST'])
 @permission_required(Permission.ADMINISTER)
@@ -169,7 +170,7 @@ def invite_request():
     page = request.args.get('page', 1, type=int)
     # find invited users, sort them so that unconfirmed comes first,
     # sort then all users by date
-    pagination = User.query.filter(User.invited == True).\
+    pagination = User.query.order_by(User.invited).\
                  order_by(User.confirmed.asc()).\
                  order_by(User.member_since.desc()).paginate(
                      page, per_page=current_app.config['APP_ITEMS_PER_PAGE'],
@@ -233,3 +234,5 @@ def change_email(token):
     else:
         flash('Invalid request.', 'warning')
     return redirect(url_for('info.index'))
+
+
