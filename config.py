@@ -27,7 +27,7 @@ class Config:
     TELEGRAM_URL = "https://api.telegram.org/bot{key}/".\
         format(key=TELEGRAM_TOKEN)
 
-    SERVER_PUBLIC_KEY = os.environ.get('SERVER_PUBLIC_KEY')
+    SERVER_PUBLIC_KEY = os.environ.get('SERVER_PUBLIC_KEY', None)
     SERVER_MAX_CONNECTIONS = os.environ.get('SERVER_MAX_CONNECTIONS') or 40
 
     MAIL_SERVER = os.environ.get('MAIL_SERVER')
@@ -39,6 +39,11 @@ class Config:
     CELERY_RESULT_BACKEND = os.environ.get('CELERY_BROKER_URL')
     CELERY_BROKER_URL = os.environ.get('CELERY_RESULT_BACKEND')
     CELERY_INSTEAD_THREADING = os.environ.get('CELERY_INSTEAD_THREADING', None)
+
+    DEQUE_HOST = os.environ.get('DEQUE_HOST', 'localhost')
+    DEQUE_PORT = os.environ.get('DEQUE_PORT', 6379)
+    DEQUE_KEY = os.environ.get('DEQUE_KEY', 'UpdateIDs')
+    DEQUE_MAX_LEN = os.environ.get('DEQUE_MAX_LEN') or 20
 
     APP_NAME = 'PilosusBot'
     APP_ADMIN_EMAIL = os.environ.get('APP_ADMIN_EMAIL')
@@ -65,6 +70,7 @@ class Config:
                         1.0: Score('Very positive', 'success'),
                         }
 
+    APP_UPDATE_TEXT_THRESHOLD_LEN = os.environ.get('APP_UPDATE_TEXT_THRESHOLD_LEN') or 100
 
     @staticmethod
     def init_app(app):

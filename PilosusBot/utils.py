@@ -2,8 +2,9 @@ from polyglot.detect import Detector
 from polyglot.detect import langids as langs
 from flask import current_app
 
+
 def generate_password(length=10):
-    """Generate rnadom password of the given length.
+    """Generate random password of the given length.
     """
     import random
     import string

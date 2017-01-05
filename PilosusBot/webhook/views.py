@@ -1,5 +1,4 @@
 import os
-import telegram
 import requests
 
 from flask import jsonify, request, url_for, current_app
@@ -8,11 +7,17 @@ from .. import csrf
 from . import webhook
 from .decorators import permission_required
 from .authentication import auth
+from ..processing import parse_update, parsed_update_can_be_processed
+from ..tasks import celery_chain
 
 
 TELEGRAM_API_KEY = os.environ.get('TELEGRAM_TOKEN')
 URL = "{base}{api}/".format(base='https://api.telegram.org/bot', api=TELEGRAM_API_KEY)
-bot = telegram.Bot(token=TELEGRAM_API_KEY)
+
+
+# TODO remove
+#bot = telegram.Bot(token=TELEGRAM_API_KEY)
+
 
 
 @webhook.route('/{api_key}/<action>'.format(api_key=TELEGRAM_API_KEY), methods=['POST'])
@@ -36,11 +41,18 @@ def set_webhook(action):
         url = url_for('webhook.handle_webhook', _external=True)
 
     payload = {'url': url,  # URL Telegram will post updates to
-               'certificate': open(current_app.config['SERVER_PUBLIC_KEY'], 'rb'),  # open public key in binary mode
                'max_connections': current_app.config['SERVER_PUBLIC_KEY'],
                'allowed_updates': [],  # if empty list, then all kinds of updates, including messages, get catched.
                }
 
+    # if server lacks valid SSL certificate and uses self-signed cert,
+    # it should be uploaded to the Telegram
+    # see https://core.telegram.org/bots/webhooks
+    if current_app.config['SERVER_PUBLIC_KEY']:
+        # open public key in binary mode
+        payload['certificate'] = open(current_app.config['SERVER_PUBLIC_KEY'], 'rb')
+
+    # response
     context = {'status': None, 'url': url}
 
     # make a request to telegram API, catch exceptions if any, return status
@@ -52,23 +64,10 @@ def set_webhook(action):
     else:
         context['status'] = r.text
 
-    """
-    status = None
-    try:
-        # TODO remove after DEBUGGING!
-        status = bot.setWebhook(url)
-    except Exception as err:
-        context['status'] = 'exception occurred: {0}'.format(err)
-
-    if status:
-        context['status'] = 'success'
-    else:
-        context['status']= 'fail'
-    """
 
     return jsonify(context)
 
-# TODO rewrite using bare requests
+
 @webhook.route('/{api_key}/handle'.format(api_key=TELEGRAM_API_KEY), methods=['POST'])
 @csrf.exempt
 def handle_webhook():
@@ -77,17 +76,21 @@ def handle_webhook():
 
     :return: JSON
     """
-    global bot
 
-    # receive JSON request, then transform it to telegram object
-    update = telegram.Update.de_json(request.get_json(force=True))
+    # update is a Python dict
+    update = request.get_json(force=True)
 
-    # get chat id
-    chat_id = update.message.chat.id
+    # parse incoming Update
+    parsed_update = parse_update(update)
 
-    # TODO process text here!
-    # get text messages from updates
-    text = update.message.text.encode('utf-8')
+    # if Update contains 'text', 'chat_id', 'message_id' then process it with Celery chain
+    if parsed_update_can_be_processed(parsed_update):
+        celery_chain(parsed_update)
+    else:
+        # otherwise, send an empty dict as an acknowledgement that the Update's received
+        pass
 
-    # send the text (uppercased) back to the chat
-    bot.sendMessage(chat_id=chat_id, text=text.upper())
+
+    return jsonify(update)
+
+

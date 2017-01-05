@@ -4,6 +4,16 @@ from .utils import map_value_from_range_to_new_range as map_val
 
 
 # TODO
+def celery_chain(parsed_update):
+    """
+
+    :param parsed_update:
+    :return:
+    """
+    pass
+
+
+# TODO
 @shared_task
 def determine_message_score(message):
     """
@@ -21,7 +31,7 @@ def determine_message_score(message):
 def select_db_sentiment(score_slice):
     """
     Return sentiment from the database,
-    :param score: slice with slice.start >= 0.0, start.stop <= 1.0
+    :param score_slice: slice with slice.start >= 0.0, start.stop <= 1.0
     :return: str
     """
     pass
@@ -35,3 +45,7 @@ def send_message_to_chat(message):
     :return: Telegram Message (success) or None (fail)
     """
     pass
+    #
+    #payload = {
+    #    'method': 'sendMessage',
+    #}
