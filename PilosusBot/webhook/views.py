@@ -41,8 +41,8 @@ def set_webhook(action):
         url = url_for('webhook.handle_webhook', _external=True)
 
     payload = {'url': url,  # URL Telegram will post updates to
-               'max_connections': current_app.config['SERVER_PUBLIC_KEY'],
-               'allowed_updates': [],  # if empty list, then all kinds of updates, including messages, get catched.
+               'max_connections': current_app.config['SERVER_MAX_CONNECTIONS'],
+               'allowed_updates': [],  # if empty list, then all kinds of updates (incl. messages) get catched.
                }
 
     # if server lacks valid SSL certificate and uses self-signed cert,
@@ -87,10 +87,9 @@ def handle_webhook():
     if parsed_update_can_be_processed(parsed_update):
         celery_chain(parsed_update)
     else:
-        # otherwise, send an empty dict as an acknowledgement that the Update's received
-        pass
+        # otherwise, send an empty dict as an acknowledgement that Update has been received
+        return jsonify({})
 
-
-    return jsonify(update)
+    #return jsonify(update)
 
 

@@ -50,8 +50,7 @@ def sentiments():
 def edit_sentiment(id):
     sentiment = Sentiment.query.get_or_404(id)
 
-    if current_user != sentiment.author or \
-            not current_user.can(Permission.ADMINISTER):
+    if not current_user == sentiment.author and not current_user.can(Permission.ADMINISTER):
         flash('The sentiment can be edited by either its author or a site administrator.',
               'warning')
         return redirect(url_for('.sentiments'))

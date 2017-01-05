@@ -70,6 +70,11 @@ class Config:
                         1.0: Score('Very positive', 'success'),
                         }
 
+    # only every Nth message being processed by the bot
+    # set default to 1 to get each message processed by the bot
+    APP_EVERY_NTH_MESSAGE_ONLY = os.environ.get('APP_EVERY_NTH_MESSAGE_ONLY') or 7
+
+    # only messages >= 100 chars being processed by the bot
     APP_UPDATE_TEXT_THRESHOLD_LEN = os.environ.get('APP_UPDATE_TEXT_THRESHOLD_LEN') or 100
 
     @staticmethod
