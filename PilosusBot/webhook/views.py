@@ -11,6 +11,9 @@ from ..processing import parse_update, parsed_update_can_be_processed
 from ..tasks import celery_chain
 
 
+TELEGRAM_API_KEY = os.environ.get('TELEGRAM_TOKEN')
+
+
 @webhook.route('/{api_key}/<action>'.format(api_key=TELEGRAM_API_KEY), methods=['POST'])
 @csrf.exempt
 @auth.login_required
