@@ -22,7 +22,6 @@ def celery_chain(parsed_update):
     return chain_result
 
 
-# TODO
 @shared_task
 def determine_message_score(parsed_update):
     """

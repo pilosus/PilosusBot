@@ -11,15 +11,6 @@ from ..processing import parse_update, parsed_update_can_be_processed
 from ..tasks import celery_chain
 
 
-TELEGRAM_API_KEY = os.environ.get('TELEGRAM_TOKEN')
-URL = "{base}{api}/".format(base='https://api.telegram.org/bot', api=TELEGRAM_API_KEY)
-
-
-# TODO remove
-#bot = telegram.Bot(token=TELEGRAM_API_KEY)
-
-
-
 @webhook.route('/{api_key}/<action>'.format(api_key=TELEGRAM_API_KEY), methods=['POST'])
 @csrf.exempt
 @auth.login_required
@@ -58,7 +49,7 @@ def set_webhook(action):
     # make a request to telegram API, catch exceptions if any, return status
     try:
         # set timeout to 120s, since we want server to unset bot even under high load/DDoS
-        r = requests.post(URL + 'setWebhook',
+        r = requests.post(current_app.config['TELEGRAM_URL'] + 'setWebhook',
                           json=payload,
                           timeout=current_app.config['TELEGRAM_REQUEST_TIMEOUT_SEC'] * 60)
     except requests.exceptions.RequestException as err:

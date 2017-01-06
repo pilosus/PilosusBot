@@ -25,8 +25,6 @@ class SentimentForm(FlaskForm):
         self.language.choices = [(lang.id, lang.code) for lang in
                                  Language.query.order_by(Language.code).all()]
 
-    # TODO validation for language and score
-
 
 class LanguageForm(FlaskForm):
     code = SelectField("Language code",
