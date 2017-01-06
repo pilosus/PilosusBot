@@ -1,5 +1,6 @@
 from polyglot.detect import Detector
 from polyglot.detect import langids as langs
+from polyglot.text import Text
 from flask import current_app
 
 
@@ -47,21 +48,14 @@ def map_value_from_range_to_new_range(old_value, old_slice=slice(-1.0, 1.0), new
            new_slice.start
 
 
-def detect_language(text):
+def detect_language_code(text):
     """
     Return language code, fall back to app's default language if detected language not in the DB.
     :param text: str
-    :return: Language instance
+    :return: str (two-letter language code)
     """
-    from .models import Language
-
     detector = Detector(text)
-    lang = Language.query.filter_by(code=detector.language.code).first()
-
-    if lang:
-        return lang
-    else:
-        return Language.query.filter_by(code=current_app.config['APP_LANG_FALLBACK']).first()
+    return detector.language.code
 
 
 def is_valid_lang_code(code):
@@ -90,4 +84,91 @@ def lang_code_to_lang_name(code):
     :param code: str (two-letter ISO 639-1 language code)
     :return: str
     """
-    return langs.isoLangs[code]['name']
+    # remove additional names of the language name
+    return langs.isoLangs[code]['name'].split(';')[0]
+
+
+def score_to_closest_level(lang_code, score, levels):
+    """
+    Return level from the given list of score levels, the nearest to the given score.
+
+    Returned score level should have at least one Sentiment in the DB for the given language.
+
+    # assume each level has at least one row in the db
+    >>> score_to_closest_level(0.63, [0.0, 0.25, 0.375, 0.5, 0.625, 0.75, 1.0])
+    0.75
+
+    >>> score_to_closest_level(0.75, [0.0, 0.25, 0.375, 0.5, 0.625, 0.75, 1.0])
+    0.75
+
+    >>> score_to_closest_level(1.0, [0.0, 0.25, 0.375, 0.5, 0.625, 0.75, 1.0])
+    1.0
+
+    :param lang_code: str
+    :param score: float (min(levels) <= score <= max(levels) )
+    :param levels: list of floats (non-empty)
+    :return: float (score level for which at least one Sentiment
+                   in given language exists in the DB)
+    """
+    from .models import Sentiment, Language
+    lang = Language.query.filter_by(code=lang_code).first()
+    neutral_score = 0.5
+    neutral_score_idx = levels.index(neutral_score)
+
+    level = None
+    new_levels = sorted(levels + [score])
+
+    cur_idx = new_levels.index(score)
+    start_idx = cur_idx
+
+    min_idx = 1
+    max_idx = len(new_levels) - 1
+
+    if score >= neutral_score:
+        step = 1
+    else:
+        step = -1
+
+    switch_direction = False
+
+    while True:
+        if cur_idx in range(min_idx, max_idx):
+            cur_idx += step
+        else:
+            if not switch_direction:
+                step = -step
+                cur_idx = start_idx
+                switch_direction = True
+            # if direction already switched once, and we have reached the end of the range,
+            # then search is exhausted, stop it
+            else:
+                break
+
+        # if there's at least one sentiment for the level, return this level
+        level = new_levels[cur_idx]
+        sentiment = Sentiment.query.filter(Sentiment.score == level, Sentiment.language == lang).first()
+
+        if sentiment:
+            break
+
+    return level
+
+
+def get_rough_sentiment_score(text):
+    """
+    Return sentiment score calculated using polyglot words polarity.
+
+    :param text: str (non-empty)
+    :return: float
+    """
+    # for some odd reasons polyglot determines polarity correctly
+    # iff text is lowercased
+    words = Text(text.lower()).words
+
+    polarity_scores = [word.polarity for word in words]
+    text_score = polarity_scores / len(polarity_scores)
+
+    # map score of range [-1.0, 1.0] to a new range of [0.0, 1.0]
+    return map_value_from_range_to_new_range(text_score,
+                                             old_slice=slice(-1.0, 1.0),
+                                             new_slice=slice(0.0, 1.0))

@@ -1,7 +1,11 @@
-from flask import jsonify, current_app
+import indicoio
+import random
+import requests
+from indicoio.utils.errors import IndicoError, DataStructureException
+from flask import current_app
 from celery import shared_task, chain
-from .exceptions import APIAccessError
-from .utils import map_value_from_range_to_new_range as map_val
+from .utils import score_to_closest_level as select_score_level, \
+    detect_language_code, get_rough_sentiment_score, lang_code_to_lang_name
 from .models import Sentiment, Language
 
 
@@ -10,11 +14,12 @@ def celery_chain(parsed_update):
     Celery chain of tasks, one task in the chain is executed after the previous one is done.
 
     :param parsed_update: dict
-    :return:
+    :return: dict (with 'status_code' and 'status' keys)
     """
     chain_result = chain(determine_message_score.s(parsed_update),
                          select_db_sentiment.s(),
                          send_message_to_chat.s()).apply_async()
+    return chain_result
 
 
 # TODO
@@ -32,23 +37,33 @@ def determine_message_score(parsed_update):
     text = parsed_update['text']
 
     # calculate sentiment using polyglot library
+    score = get_rough_sentiment_score(text)
 
-    # map score from [-1.0, 1.0] range to [0.0, 1.0] range using map_val function
-    score = 0
+    # detect text language (fallback to default language, if detected language is not in the DB)
+    lang_code_polyglot = detect_language_code(text)
 
-    # determine language (you get it for free, once sentiment is calculated)
+    lang = Language.query.filter_by(code=lang_code_polyglot).first() or \
+           Language.query.filter_by(code=current_app.config['APP_LANG_FALLBACK']).first()
+
+    lang_name = lang_code_to_lang_name(lang.code).lower()
+
+    # save language code for further use
+    parsed_update['language'] = lang.code
 
     # request to third-party API to determine to get more precise sentiment score
+    indicoio.config.api_key = current_app.config['INDICO_TOKEN']
 
-    # if request to third-party API succeeded (status code is 200), update score
-
+    # if request to third-party API succeeded, update score
     # otherwise stay with score calculated by poyglot
+    try:
+        score = indicoio.sentiment(text, language=lang_name)
+    except (IndicoError, DataStructureException) as err:
+        pass
 
     # return parsed_update updated with score
     parsed_update['score'] = score
 
     return parsed_update
-
 
 
 @shared_task
@@ -59,17 +74,35 @@ def select_db_sentiment(parsed_update):
     No rate limits for the task's queue.
 
     :param parsed_update: dict (with 'score' key)
-    :return: dict updated with 'sentiment' key
+    :return: dict updated
     """
 
-    # unpack score
+    # unpack score, text, language
     score = parsed_update['score']
+    text = parsed_update['text']
+    lang_code = parsed_update['language']
 
-    # filter Sentiments according to score
+    # find score level closest to the calculated score of the text
+    # with at least one Sentiment of the text's language in the DB
+    level = select_score_level(lang_code=lang_code,
+                               score=score,
+                               levels=sorted(list(current_app.config['APP_SCORE_LEVELS'].keys())))
 
-    # select Sentiment randomly
+    # select all Sentiments of the score level and language
+    sentiments = Sentiment.query.filter(Sentiment.score == level, Sentiment.language == lang).all()
 
-    # update dict with 'sentiment' key
+    # select a Sentiment randomly
+    sentiment = random.choice(sentiments)
+
+    # if Sentiment has 'body_html', then use 'HTML' parse_mode;
+    # otherwise use 'Markdown'
+    # also replace 'text' with sentiment chosen
+
+    if sentiment.body_html:
+        parsed_update['parse_mode'] = 'HTML'
+        parsed_update['text'] = sentiment.body_html
+    else:
+        parsed_update['text'] = sentiment.body
 
     return parsed_update
 
@@ -81,13 +114,23 @@ def send_message_to_chat(parsed_update):
 
     The task to be processed in a separate queue with rate limit in compliance with Telegram API.
 
-    :param parsed_update: Telegram Message type (see https://core.telegram.org/bots/api#sendmessage)
-    :return: Telegram Message (success) or None (fail)
+    :param parsed_update: dict ('text', 'chat_id', 'reply_to_message_id' keys are mandatory)
+    :return: dict (with 'status_code' and 'status' keys)
     """
-    URL = current_app.config['TELEGRAM_URL']
+    url = current_app.config['TELEGRAM_URL'] + 'sendMessage'
+    result = {'status_code': None, 'status': None}
 
-    payload = {
-        'method': 'sendMessage',
-    }
+    # make a request to telegram API, catch exceptions if any, return status
+    try:
+        r = requests.post(url,
+                          json=parsed_update,
+                          timeout=current_app.config['TELEGRAM_REQUEST_TIMEOUT_SEC'])
+    except requests.exceptions.RequestException as err:
+        result['status_code'] = 599  # informal convention for Network connect timeout error
+        result['status'] = str(err)
+    else:
+        response = r.json()
+        result['status_code'] = r.status_code
+        result['status'] = "{id}. {text}".format(id=response['message_id'], text=response['text'])
 
-    return jsonify(payload)
+    return parsed_update
