@@ -52,7 +52,7 @@ def parse_update(update):
         return result
     else:
         result['chat_id'] = chat_id
-        result['message_id'] = message_id
+        result['reply_to_message_id'] = message_id
         result['text'] = text
 
     return result
@@ -60,7 +60,7 @@ def parse_update(update):
 
 def parsed_update_can_be_processed(parsed_update):
     """
-    Return True if a dict given contains 'text', 'chat_id', 'message_id' fields.
+    Return True if a dict given contains 'text', 'chat_id', 'reply_to_message_id' fields.
 
     The text of the given dict should also satisfy certain criteria:
 
@@ -69,6 +69,6 @@ def parsed_update_can_be_processed(parsed_update):
     """
     return parsed_update.get('text') and \
            parsed_update.get('chat_id') and \
-           parsed_update.get('message_id') and \
+           parsed_update.get('reply_to_message_id') and \
            len(parsed_update.get('text')) >= current_app.config['APP_UPDATE_TEXT_THRESHOLD_LEN'] and \
-           parsed_update.get('message_id') % current_app.config['APP_EVERY_NTH_MESSAGE_ONLY'] == 0
+           parsed_update.get('reply_to_message_id') % current_app.config['APP_EVERY_NTH_MESSAGE_ONLY'] == 0

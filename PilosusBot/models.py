@@ -293,7 +293,7 @@ class Language(db.Model):
     __tablename__ = 'languages'
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(2), index=True, unique=True)
-    name = db.Column(db.String(30), nullable=True)
+    #name = db.Column(db.String(30), nullable=True)
     sentiments = db.relationship('Sentiment', backref='language', lazy='dynamic',
                                  cascade='all, delete-orphan')
 
@@ -306,6 +306,9 @@ class Language(db.Model):
                 lang = Language(code=l)
                 db.session.add(lang)
         db.session.commit()
+
+    def __repr__(self):
+        return '<Language %r>' % self.code
 
 
 class Sentiment(db.Model):

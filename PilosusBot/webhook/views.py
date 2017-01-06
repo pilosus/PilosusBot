@@ -58,12 +58,13 @@ def set_webhook(action):
     # make a request to telegram API, catch exceptions if any, return status
     try:
         # set timeout to 120s, since we want server to unset bot even under high load/DDoS
-        r = requests.post(URL + 'setWebhook', json=payload, timeout=120)
+        r = requests.post(URL + 'setWebhook',
+                          json=payload,
+                          timeout=current_app.config['TELEGRAM_REQUEST_TIMEOUT_SEC'] * 60)
     except requests.exceptions.RequestException as err:
         context['status'] = str(err)
     else:
         context['status'] = r.text
-
 
     return jsonify(context)
 

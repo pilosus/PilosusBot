@@ -3,7 +3,7 @@ from flask import current_app, flash, redirect, request, render_template, url_fo
 from flask_login import current_user, login_required
 from ..models import Permission, Sentiment, Language
 from ..decorators import admin_required, permission_required
-from ..utils import lang_code_to_lang_name as code2name
+from ..utils import lang_code_to_lang_name
 from .forms import SentimentForm, LanguageForm
 from .. import db
 from . import admin

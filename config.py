@@ -26,6 +26,7 @@ class Config:
     TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
     TELEGRAM_URL = "https://api.telegram.org/bot{key}/".\
         format(key=TELEGRAM_TOKEN)
+    TELEGRAM_REQUEST_TIMEOUT_SEC = os.environ.get('TELEGRAM_REQUEST_TIMEOUT_SEC') or 2
 
     SERVER_PUBLIC_KEY = os.environ.get('SERVER_PUBLIC_KEY', None)
     SERVER_MAX_CONNECTIONS = os.environ.get('SERVER_MAX_CONNECTIONS') or 40
