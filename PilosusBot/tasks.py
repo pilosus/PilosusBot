@@ -16,14 +16,15 @@ def celery_chain(parsed_update):
     :param parsed_update: dict
     :return: dict (with 'status_code' and 'status' keys)
     """
-    chain_result = chain(determine_message_score.s(parsed_update),
+    chain_result = chain(assess_message_score.s(parsed_update),
                          select_db_sentiment.s(),
                          send_message_to_chat.s()).apply_async()
     return chain_result
 
 
+# assess queue
 @shared_task
-def determine_message_score(parsed_update):
+def assess_message_score(parsed_update):
     """
     Return incoming message score using either polyglot or third-party API (like inidocoio).
 
@@ -65,6 +66,7 @@ def determine_message_score(parsed_update):
     return parsed_update
 
 
+# select queue
 @shared_task
 def select_db_sentiment(parsed_update):
     """
@@ -81,6 +83,9 @@ def select_db_sentiment(parsed_update):
     text = parsed_update['text']
     lang_code = parsed_update['language']
 
+    # select language
+    lang = Language.query.filter_by(code=lang_code).first()
+
     # find score level closest to the calculated score of the text
     # with at least one Sentiment of the text's language in the DB
     level = select_score_level(lang_code=lang_code,
@@ -90,7 +95,8 @@ def select_db_sentiment(parsed_update):
     # select all Sentiments of the score level and language
     sentiments = Sentiment.query.filter(Sentiment.score == level, Sentiment.language == lang).all()
 
-    # select a Sentiment randomly
+    # select a Sentiment randomly,
+    # select first Sentiment in a list if it's a list of length 1, so that rnd
     sentiment = random.choice(sentiments)
 
     # if Sentiment has 'body_html', then use 'HTML' parse_mode;
@@ -106,6 +112,7 @@ def select_db_sentiment(parsed_update):
     return parsed_update
 
 
+# send queue
 @shared_task
 def send_message_to_chat(parsed_update):
     """
@@ -128,8 +135,8 @@ def send_message_to_chat(parsed_update):
         result['status_code'] = 599  # informal convention for Network connect timeout error
         result['status'] = str(err)
     else:
-        response = r.json()
         result['status_code'] = r.status_code
-        result['status'] = "{id}. {text}".format(id=response['message_id'], text=response['text'])
+        result['status'] = "Reply to {id}. {text}".format(id=parsed_update['reply_to_message_id'],
+                                                          text=r.json())
 
     return parsed_update

@@ -85,6 +85,5 @@ def handle_webhook():
         # otherwise, send an empty dict as an acknowledgement that Update has been received
         return jsonify({})
 
-    #return jsonify(update)
-
-
+    # should it be commented?
+    return jsonify(update)

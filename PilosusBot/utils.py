@@ -166,7 +166,7 @@ def get_rough_sentiment_score(text):
     words = Text(text.lower()).words
 
     polarity_scores = [word.polarity for word in words]
-    text_score = polarity_scores / len(polarity_scores)
+    text_score = sum(polarity_scores) / len(polarity_scores)
 
     # map score of range [-1.0, 1.0] to a new range of [0.0, 1.0]
     return map_value_from_range_to_new_range(text_score,

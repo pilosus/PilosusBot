@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import re
 from dotenv import load_dotenv
 from collections import namedtuple
 
@@ -26,10 +27,10 @@ class Config:
     TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
     TELEGRAM_URL = "https://api.telegram.org/bot{key}/".\
         format(key=TELEGRAM_TOKEN)
-    TELEGRAM_REQUEST_TIMEOUT_SEC = os.environ.get('TELEGRAM_REQUEST_TIMEOUT_SEC') or 2
+    TELEGRAM_REQUEST_TIMEOUT_SEC = int(os.environ.get('TELEGRAM_REQUEST_TIMEOUT_SEC', 2))
 
     SERVER_PUBLIC_KEY = os.environ.get('SERVER_PUBLIC_KEY', None)
-    SERVER_MAX_CONNECTIONS = os.environ.get('SERVER_MAX_CONNECTIONS') or 40
+    SERVER_MAX_CONNECTIONS = int(os.environ.get('SERVER_MAX_CONNECTIONS', 40))
 
     MAIL_SERVER = os.environ.get('MAIL_SERVER')
     MAIL_PORT = os.environ.get('MAIL_PORT', 587)
@@ -40,9 +41,26 @@ class Config:
     CELERY_RESULT_BACKEND = os.environ.get('CELERY_BROKER_URL')
     CELERY_BROKER_URL = os.environ.get('CELERY_RESULT_BACKEND')
     CELERY_INSTEAD_THREADING = os.environ.get('CELERY_INSTEAD_THREADING', None)
+    CELERY_QUEUE_ASSESS = os.environ.get('CELERY_QUEUE_ASSESS')
+    CELERY_QUEUE_SELECT = os.environ.get('CELERY_QUEUE_SELECT')
+    CELERY_QUEUE_SEND = os.environ.get('CELERY_QUEUE_SEND')
+    CELERY_ROUTES = {
+        'PilosusBot.tasks.assess_message_score': {'queue': CELERY_QUEUE_ASSESS},
+        'PilosusBot.tasks.select_db_sentiment':  {'queue': CELERY_QUEUE_SELECT},
+        'PilosusBot.tasks.send_message_to_chat': {'queue': CELERY_QUEUE_SEND},
+    }
+    CELERY_ANNOTATIONS = {
+        'PilosusBot.tasks.assess_message_score':
+            {'rate_limit': '{0}/m'.format(os.environ.get('CELERY_TASKS_PER_MIN', 50))},
+        'PilosusBot.tasks.send_message_to_chat':
+            {'rate_limit': '{0}/m'.format(os.environ.get('CELERY_TASKS_PER_MIN', 50))},
+    }
+    CELERY_TASK_SERIALIZER = 'pickle'
+    CELERY_RESULT_SERIALIZER = 'pickle'
+    CELERY_ACCEPT_CONTENT = ['pickle']
 
     DEQUE_HOST = os.environ.get('DEQUE_HOST', 'localhost')
-    DEQUE_PORT = os.environ.get('DEQUE_PORT', 6379)
+    DEQUE_PORT = int(os.environ.get('DEQUE_PORT', 6379))
     DEQUE_KEY = os.environ.get('DEQUE_KEY', 'UpdateIDs')
     DEQUE_MAX_LEN = os.environ.get('DEQUE_MAX_LEN') or 20
 
@@ -50,7 +68,7 @@ class Config:
     APP_ADMIN_EMAIL = os.environ.get('APP_ADMIN_EMAIL')
     APP_ADMIN_NAME = os.environ.get('APP_ADMIN_NAME')
     APP_REGISTRATION_OPEN = os.environ.get('APP_REGISTRATION_OPEN', False)
-    APP_ITEMS_PER_PAGE = os.environ.get('APP_ITEMS_PER_PAGE', 20)
+    APP_ITEMS_PER_PAGE = int(os.environ.get('APP_ITEMS_PER_PAGE', 20))
     APP_MAIL_SUBJECT_PREFIX = os.environ.get('APP_MAIL_SUBJECT_PREFIX') or APP_NAME
     APP_MAIL_SENDER = '{0} Mailer <{1}>'.format(APP_NAME, MAIL_USERNAME)
 
@@ -73,10 +91,10 @@ class Config:
 
     # only every Nth message being processed by the bot
     # set default to 1 to get each message processed by the bot
-    APP_EVERY_NTH_MESSAGE_ONLY = os.environ.get('APP_EVERY_NTH_MESSAGE_ONLY') or 7
+    APP_EVERY_NTH_MESSAGE_ONLY = int(os.environ.get('APP_EVERY_NTH_MESSAGE_ONLY', 7))
 
     # only messages >= 100 chars being processed by the bot
-    APP_UPDATE_TEXT_THRESHOLD_LEN = os.environ.get('APP_UPDATE_TEXT_THRESHOLD_LEN') or 100
+    APP_UPDATE_TEXT_THRESHOLD_LEN = int(os.environ.get('APP_UPDATE_TEXT_THRESHOLD_LEN', 100))
 
     @staticmethod
     def init_app(app):
