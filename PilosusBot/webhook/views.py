@@ -47,18 +47,21 @@ def set_webhook(action):
         payload['certificate'] = open(current_app.config['SERVER_PUBLIC_KEY'], 'rb')
 
     # response
-    context = {'status': None, 'url': url}
+    context = {'ok': None, 'error_code': None, 'description': None, 'url': url}
 
     # make a request to telegram API, catch exceptions if any, return status
     try:
         # set timeout to 120s, since we want server to unset bot even under high load/DDoS
-        r = requests.post(current_app.config['TELEGRAM_URL'] + 'setWebhook',
-                          json=payload,
-                          timeout=current_app.config['TELEGRAM_REQUEST_TIMEOUT_SEC'] * 60)
+        response = requests.post(current_app.config['TELEGRAM_URL'] + 'setWebhook',
+                                 json=payload,
+                                 timeout=current_app.config['TELEGRAM_REQUEST_TIMEOUT_SEC'] * 60)
     except requests.exceptions.RequestException as err:
-        context['status'] = str(err)
+        context['ok'] = False
+        context['error_code'] = 599
+        context['description'] = str(err)
     else:
-        context['status'] = r.text
+        context = response.json()
+        context['url'] = url
 
     return jsonify(context)
 

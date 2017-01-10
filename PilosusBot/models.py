@@ -109,17 +109,29 @@ class User(UserMixin, db.Model):
             db.session.commit()
 
     @staticmethod
-    def generate_fake(count=100):
+    def generate_fake(count=100, roles=None):
+        """
+        Add fake users to a DB.
+
+        :param count: int
+        :param roles: list of Role instances
+        :return: None
+        """
         from sqlalchemy.exc import IntegrityError
-        from random import seed
+        from random import seed, choice
         import forgery_py
 
-        writer_role = Role.query.filter_by(name='Writer').first()
         seed()
+
+        if roles:
+            role = choice(roles)
+        else:
+            role = choice(Role.query.all())
+
         for i in range(count):
             u = User(email=forgery_py.internet.email_address(),
                      username=forgery_py.internet.user_name(True),
-                     role=writer_role,
+                     role=role,
                      password=forgery_py.lorem_ipsum.word(),
                      confirmed=True,
                      name=forgery_py.name.full_name(),

@@ -28,6 +28,7 @@ def verify_password(email_or_token, password):
 def auth_error():
     return unauthorized('invalid credentials')
 
+
 @auth.error_handler
 def forbidden_error():
     return forbidden('unconfirmed account')
