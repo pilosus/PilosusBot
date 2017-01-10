@@ -8,7 +8,7 @@ from . import webhook
 from .decorators import permission_required
 from .authentication import auth
 from ..processing import parse_update, parsed_update_can_be_processed
-from ..tasks import celery_chain
+from ..tasks import celery_chain, send_message_to_chat
 
 
 TELEGRAM_API_KEY = os.environ.get('TELEGRAM_TOKEN')
@@ -78,12 +78,18 @@ def handle_webhook():
     # parse incoming Update
     parsed_update = parse_update(update)
 
+    # to be returned by the view
+    result = {'ok': None, 'error': None}
+
     # if Update contains 'text', 'chat_id', 'message_id' then process it with Celery chain
     if parsed_update_can_be_processed(parsed_update):
         celery_chain(parsed_update)
+        # return non-empty json
+        return jsonify(update)
+
     else:
         # otherwise, send an empty dict as an acknowledgement that Update has been received
-        return jsonify({})
+        send_message_to_chat.apply_async(args=[{}])
 
-    # should it be commented?
-    return jsonify(update)
+    # needed for a valid view, return empty json
+    return jsonify({})

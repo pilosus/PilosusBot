@@ -330,7 +330,7 @@ class Sentiment(db.Model):
 
     @staticmethod
     def generate_fake(count=100):
-        from random import seed, randint
+        from random import seed, randint, choice
         import forgery_py
 
         seed()
@@ -338,9 +338,10 @@ class Sentiment(db.Model):
         for i in range(count):
             user = User.query.offset(randint(0, user_count - 1)).first()
             p = Sentiment(body=forgery_py.lorem_ipsum.sentences(randint(1, 5)),
-                          timestamp=forgery_py.date.date(True),
+                          score=choice(list(current_app.config['APP_SCORE_LEVELS'].keys())),
                           author=user,
-                          language='en',
+                          language=Language.query.filter_by(code='en').first(),
+                          timestamp=forgery_py.date.date(True),
                           )
             db.session.add(p)
             db.session.commit()

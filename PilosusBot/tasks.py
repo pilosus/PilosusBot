@@ -124,7 +124,7 @@ def send_message_to_chat(parsed_update):
     :return: dict (with 'status_code' and 'status' keys)
     """
     url = current_app.config['TELEGRAM_URL'] + 'sendMessage'
-    result = {'status_code': None, 'status': None}
+    result = {'ok': None, 'error_code': None, 'description': None}
 
     # make a request to telegram API, catch exceptions if any, return status
     try:
@@ -132,11 +132,14 @@ def send_message_to_chat(parsed_update):
                           json=parsed_update,
                           timeout=current_app.config['TELEGRAM_REQUEST_TIMEOUT_SEC'])
     except requests.exceptions.RequestException as err:
-        result['status_code'] = 599  # informal convention for Network connect timeout error
-        result['status'] = str(err)
+        result['ok'] = False
+        result['error_code'] = 599  # informal convention for Network connect timeout error
+        result['description'] = str(err)
     else:
-        result['status_code'] = r.status_code
-        result['status'] = "Reply to {id}. {text}".format(id=parsed_update['reply_to_message_id'],
-                                                          text=r.json())
+        result = r.json()
 
-    return parsed_update
+    # function's return can be accessed through Celery chains or other structures,
+    # but won't be accessible for the view it's called from,
+    # unless the view will be changed to explicitly wait for result like this:
+    # result.get(timeout=10)
+    return result
