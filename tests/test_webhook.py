@@ -1,11 +1,14 @@
+import base64
 import math
 import random
+import requests
 import sys
 import unittest
 from flask import current_app, json, url_for
+from werkzeug.datastructures import Headers
 #from flask_testing import TestCase
 from PilosusBot import create_app, db
-from PilosusBot.models import Language, Role, Sentiment, User
+from PilosusBot.models import Language, Permission, Role, Sentiment, User
 
 
 """
@@ -19,7 +22,9 @@ https://pythonhosted.org/Flask-Testing/
 
 
 class TelegramUpdates(object):
-    URL = url_for('webhook.handle_webhook')
+    URL_HANDLE_WEBHOOK = url_for('webhook.handle_webhook')
+    URL_SET_WEBHOOK = url_for('webhook.set_webhook', action='set', _external=True)
+    URL_UNSET_WEBHOOK = url_for('webhook.set_webhook', action='unset', _external=True)
     HEADERS = {'Content-Type': 'application/json'}
     UPDATE_ID = random.randint(100, sys.maxsize)
     TEXT_BIT = "We're all mad here. "
@@ -192,26 +197,26 @@ class WebhooksTestCase(unittest.TestCase):
         self.assertTrue(current_app.config['TESTING'])
 
     def test_handle_only_post(self):
-        response_not_allowed = self.client.get(TelegramUpdates.URL)
-        self.assertTrue(response_not_allowed.status_code == 405,
+        response = self.client.get(TelegramUpdates.URL_HANDLE_WEBHOOK)
+        self.assertTrue(response.status_code == 405,
                         'GET method not allowed, only POST')
 
     def test_handle_empty_input(self):
-        response_to_empty_json_posted = self.client.post(TelegramUpdates.URL,
-                                                         data=json.dumps(TelegramUpdates.EMPTY),
-                                                         follow_redirects=True,
-                                                         headers=TelegramUpdates.HEADERS)
+        response = self.client.post(TelegramUpdates.URL_HANDLE_WEBHOOK,
+                                    data=json.dumps(TelegramUpdates.EMPTY),
+                                    follow_redirects=True,
+                                    headers=TelegramUpdates.HEADERS)
 
-        self.assertTrue(response_to_empty_json_posted.status_code == 200,
+        self.assertTrue(response.status_code == 200,
                         'POST request with empty JSON payload should return '
                         'status code 200')
 
-        self.assertEqual({}, json.loads(response_to_empty_json_posted.data),
+        self.assertEqual({}, json.loads(response.data),
                          'POST request with empty JSON payload should return '
                          'empty JSON')
 
     def test_handle_bad_id_bad_text(self):
-        response = self.client.post(TelegramUpdates.URL,
+        response = self.client.post(TelegramUpdates.URL_HANDLE_WEBHOOK,
                                     data=json.dumps(TelegramUpdates.TEXT_BAD_ID_BAD_TEXT),
                                     follow_redirects=True,
                                     headers=TelegramUpdates.HEADERS)
@@ -221,7 +226,7 @@ class WebhooksTestCase(unittest.TestCase):
                          'should return empty JSON')
 
     def test_handle_ok_id_bad_text(self):
-        response = self.client.post(TelegramUpdates.URL,
+        response = self.client.post(TelegramUpdates.URL_HANDLE_WEBHOOK,
                                     data=json.dumps(TelegramUpdates.TEXT_OK_ID_BAD_TEXT),
                                     follow_redirects=True,
                                     headers=TelegramUpdates.HEADERS)
@@ -230,7 +235,7 @@ class WebhooksTestCase(unittest.TestCase):
                          'Update with bad text length should return empty JSON')
 
     def test_handle_bad_id_ok_text(self):
-        response = self.client.post(TelegramUpdates.URL,
+        response = self.client.post(TelegramUpdates.URL_HANDLE_WEBHOOK,
                                     data=json.dumps(TelegramUpdates.TEXT_BAD_ID_OK_TEXT),
                                     follow_redirects=True,
                                     headers=TelegramUpdates.HEADERS)
@@ -239,7 +244,7 @@ class WebhooksTestCase(unittest.TestCase):
                          'Update with bad reply_message_id should return empty JSON')
 
     def test_handle_malformed_Message(self):
-        response = self.client.post(TelegramUpdates.URL,
+        response = self.client.post(TelegramUpdates.URL_HANDLE_WEBHOOK,
                                     data=json.dumps(TelegramUpdates.TEXT_MALFORMED_NO_MESSAGE),
                                     follow_redirects=True,
                                     headers=TelegramUpdates.HEADERS)
@@ -248,7 +253,7 @@ class WebhooksTestCase(unittest.TestCase):
                          'Malformed Update did not return empty JSON')
 
     def test_handle_malformed_Chat_of_Message(self):
-        response = self.client.post(TelegramUpdates.URL,
+        response = self.client.post(TelegramUpdates.URL_HANDLE_WEBHOOK,
                                     data=json.dumps(TelegramUpdates.TEXT_MALFORMED_NO_CHAT),
                                     follow_redirects=True,
                                     headers=TelegramUpdates.HEADERS)
@@ -257,7 +262,7 @@ class WebhooksTestCase(unittest.TestCase):
                          'Malformed Update with no chat did not return empty JSON')
 
     def test_handle_update_id_already_used(self):
-        response = self.client.post(TelegramUpdates.URL,
+        response = self.client.post(TelegramUpdates.URL_HANDLE_WEBHOOK,
                                     data=json.dumps(TelegramUpdates.TEXT_SAME_UPDATE_ID),
                                     follow_redirects=True,
                                     headers=TelegramUpdates.HEADERS)
@@ -266,7 +271,7 @@ class WebhooksTestCase(unittest.TestCase):
                          'Update with update_id already registered did not return empty JSON')
 
     def test_handle_valid_input(self):
-        response = self.client.post(TelegramUpdates.URL,
+        response = self.client.post(TelegramUpdates.URL_HANDLE_WEBHOOK,
                                     data=json.dumps(TelegramUpdates.TEXT_OK_ID_OK_TEXT),
                                     follow_redirects=True,
                                     headers=TelegramUpdates.HEADERS)
@@ -276,3 +281,117 @@ class WebhooksTestCase(unittest.TestCase):
         self.assertEqual(TelegramUpdates.TEXT_OK_ID_OK_TEXT,
                          json.loads(response.data),
                          'Correct Update should return the Update itself.')
+
+    def test_sethook_only_post(self):
+        response = self.client.get(TelegramUpdates.URL_HANDLE_WEBHOOK)
+        self.assertTrue(response.status_code == 405,
+                        'GET method not allowed, only POST')
+
+    def test_sethook_not_authenticated_user(self):
+        response = self.client.post(TelegramUpdates.URL_SET_WEBHOOK,
+                                    data=json.dumps(TelegramUpdates.EMPTY),
+                                    follow_redirects=True,
+                                    headers=TelegramUpdates.HEADERS)
+
+        self.assertEqual(response.status_code, 403,
+                         'Forbidden for non-administrators.')
+
+    def test_sethook_moderator_user(self):
+        moderator_role = Role.query.filter_by(name='Moderator').first()
+        moderator = User(email='moderator@example.com',
+                         username='test',
+                         role=moderator_role,
+                         password='test',
+                         confirmed=True,
+                         )
+        db.session.add(moderator)
+        db.session.commit()
+
+        headers = Headers()
+        auth_str = 'moderator@example.com:test'.encode('ascii')
+        headers.add('Authorization', 'Basic ' + base64.b64encode(auth_str).decode('ascii'))
+
+        response = self.client.post(TelegramUpdates.URL_SET_WEBHOOK,
+                                    data=json.dumps({}),
+                                    follow_redirects=True,
+                                    headers=headers)
+
+        self.assertEqual(response.status_code, 403,
+                         'Forbidden for non-administrators.')
+
+    def test_sethook_administrator_user(self):
+        admin_role = Role.query.filter_by(name='Administrator').first()
+        admin = User(email='admin@example.com',
+                     username='admin',
+                     role=admin_role,
+                     password='test',
+                     confirmed=True,
+                     )
+        db.session.add(admin)
+        db.session.commit()
+
+        # Werkzeug's test client doesn't have embedded
+        # Basic HTTP Authentication out of box like requests have,
+        # so we have to implement it by making up headers.
+        # see also
+        # http://stackoverflow.com/a/30248823/4241180
+        # http://stackoverflow.com/a/27643297/4241180
+        # http://blog.bstpierre.org/flask-testing-auth
+        headers = Headers()
+        auth_str = 'admin@example.com:test'.encode('ascii')
+        headers.add('Authorization', 'Basic ' + base64.b64encode(auth_str).decode('ascii'))
+
+        response = self.client.post(TelegramUpdates.URL_SET_WEBHOOK,
+                                    data=json.dumps({}),
+                                    follow_redirects=True,
+                                    headers=headers)
+
+        self.assertEqual(response.status_code, 200,
+                         'Only users with Permission.ADMINISTER have access'
+                         'to a sethook view')
+
+        response_json = json.loads(response.data)
+        self.assertTrue(response_json['ok'] is False)
+        self.assertEqual(response_json['error_code'], 400,
+                         'Webhook requires HTTPS url, otherwise error 400 returned')
+        self.assertEqual(response_json['url'], url_for('webhook.handle_webhook', _external=True),
+                         'Setting Webhook url by the authorized user should return url'
+                         'of the handle_webhook view')
+
+    def test_unsethook_administrator_user(self):
+        admin_role = Role.query.filter_by(name='Administrator').first()
+        admin = User(email='admin@example.com',
+                     username='admin',
+                     role=admin_role,
+                     password='test',
+                     confirmed=True,
+                     )
+        db.session.add(admin)
+        db.session.commit()
+
+        # Werkzeug's test client doesn't have embedded
+        # Basic HTTP Authentication out of box like requests have,
+        # so we have to implement it by making up headers.
+        # see also
+        # http://stackoverflow.com/a/30248823/4241180
+        # http://stackoverflow.com/a/27643297/4241180
+        # http://blog.bstpierre.org/flask-testing-auth
+        headers = Headers()
+        auth_str = 'admin@example.com:test'.encode('ascii')
+        headers.add('Authorization', 'Basic ' + base64.b64encode(auth_str).decode('ascii'))
+
+        response = self.client.post(TelegramUpdates.URL_UNSET_WEBHOOK,
+                                    data=json.dumps({}),
+                                    follow_redirects=True,
+                                    headers=headers)
+
+        self.assertEqual(response.status_code, 200,
+                         'Only users with Permission.ADMINISTER have access'
+                         'to a sethook view')
+
+        response_json = json.loads(response.data)
+        self.assertEqual(response_json['url'], '',
+                         'Unsetting Webhook url by the authorized user should return empty url')
+
+    def test_sethook_finish(self):
+        self.fail('Finish tests!')
