@@ -81,6 +81,7 @@ def deploy():
     """Run deployment tasks."""
     from flask_migrate import migrate, upgrade
     from PilosusBot.models import Role, User, Language
+    from PilosusBot.utils import download_polyglot_dicts
 
     # generate an initial migration
     migrate()
@@ -97,6 +98,8 @@ def deploy():
     # insert languages
     Language.insert_basic_languages()
 
+    # download third-party files needed for the app
+    download_polyglot_dicts()
 
 if __name__ == '__main__':
     manager.run()

@@ -341,18 +341,28 @@ class Sentiment(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     @staticmethod
-    def generate_fake(count=100):
+    def generate_fake(count=100, subsequent_scores=True, levels=None):
         from random import seed, randint, choice
         import forgery_py
 
         seed()
         user_count = User.query.count()
+
+        if not levels:
+            levels = list(current_app.config['APP_SCORE_LEVELS'].keys())
+
         for i in range(count):
             user = User.query.offset(randint(0, user_count - 1)).first()
+
+            if subsequent_scores:
+                score = levels[i % len(levels)]
+            else:
+                score = choice(levels)
+
             p = Sentiment(body=forgery_py.lorem_ipsum.sentences(randint(1, 5)),
-                          score=choice(list(current_app.config['APP_SCORE_LEVELS'].keys())),
+                          score=score,
                           author=user,
-                          language=Language.query.filter_by(code='en').first(),
+                          language=Language.query.filter_by(code='la').first(),
                           timestamp=forgery_py.date.date(True),
                           )
             db.session.add(p)

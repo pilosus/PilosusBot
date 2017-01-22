@@ -1,7 +1,20 @@
 from polyglot.detect import Detector
 from polyglot.detect import langids as langs
 from polyglot.text import Text
+from polyglot.detect.base import UnknownLanguage
+from polyglot.downloader import downloader
 from flask import current_app
+
+
+def download_polyglot_dicts():
+    """Download dictionaries needed for Polyglot library.
+    """
+    langs = current_app.config['APP_LANGUAGES']
+    dicts = current_app.config['APP_LANG_POLYGLOT_DICTS']
+
+    for dic in dicts:
+        for lang in langs:
+            downloader.download('{dic}.{lang}'.format(dic=dic, lang=lang))
 
 
 def generate_password(length=10):
@@ -54,7 +67,11 @@ def detect_language_code(text):
     :param text: str
     :return: str (two-letter language code)
     """
-    detector = Detector(text)
+    try:
+        detector = Detector(text)
+    except UnknownLanguage:
+        return current_app.config['APP_LANG_FALLBACK']
+
     return detector.language.code
 
 
@@ -106,7 +123,7 @@ def score_to_closest_level(lang_code, score, levels):
 
     :param lang_code: str
     :param score: float (min(levels) <= score <= max(levels) )
-    :param levels: list of floats (non-empty)
+    :param levels: list of floats [-1.0, 1.0] including 0.5
     :return: float (score level for which at least one Sentiment
                    in given language exists in the DB)
     """
@@ -116,6 +133,12 @@ def score_to_closest_level(lang_code, score, levels):
     neutral_score_idx = levels.index(neutral_score)
 
     level = None
+
+    if score > levels[-1]:
+        score = levels[-1]
+    elif score < levels[0]:
+        score = levels[0]
+
     new_levels = sorted(levels + [score])
 
     cur_idx = new_levels.index(score)

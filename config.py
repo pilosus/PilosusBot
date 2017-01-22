@@ -74,6 +74,7 @@ class Config:
 
     APP_LANGUAGES = ['ru', 'de', 'en', 'fr']
     APP_LANG_FALLBACK = 'ru'
+    APP_LANG_POLYGLOT_DICTS = ['sentiment2']
     APP_ALLOWED_TAGS = ['b', 'strong', 'i', 'a', 'code', 'pre']
     APP_ALLOWED_ATTRIBUTES = {'a': ['href']}
 
@@ -118,6 +119,7 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL') or \
                               'sqlite:///' + os.path.join(basedir, 'data-test.sqlite')
     WTF_CSRF_ENABLED = False
+    APP_LANGUAGES = ['ru', 'de', 'en', 'fr', 'la']
 
 
 class ProductionConfig(Config):
