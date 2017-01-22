@@ -84,13 +84,13 @@ def edit_sentiment(id):
 def remove_sentiment(id):
     sentiment = Sentiment.query.get_or_404(id)
 
-    if current_user != sentiment.author or \
-            not current_user.can(Permission.ADMINISTER):
-        flash('The sentiment can be removed by either its author or a site administrator.',
-              'warning')
-    else:
+    if current_user == sentiment.author or \
+            current_user.can(Permission.ADMINISTER):
         db.session.delete(sentiment)
         flash('The sentiment has been removed.', 'success')
+    else:
+        flash('The sentiment can be removed by either its author or a site administrator.',
+              'warning')
 
     return redirect(url_for('.sentiments'))
 
