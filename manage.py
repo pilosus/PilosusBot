@@ -6,12 +6,24 @@ Entry point of the PilosusBot application
 
 import os
 
+# run coverage.start() before importing the modules that
+# define functions to be tested, otherwise definitions
+# won't be counted as covered by tests.
+# it's ugly in terms of PEP8, but c'est la vie
+COV = None
+if os.environ.get('FLASK_COVERAGE'):
+    import coverage
+    COV = coverage.coverage(branch=True, include='PilosusBot/*')
+    COV.start()
+
+
 from PilosusBot import create_app, db
 from PilosusBot.models import User, Role, Permission, Language, Sentiment
 
 from flask_script import Manager, Shell
 from flask_migrate import Migrate, MigrateCommand
 from dotenv import load_dotenv
+
 
 # load env variables from `.env` file, like Heroku does
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -29,12 +41,6 @@ def make_shell_context():
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 
-
-COV = None
-if os.environ.get('FLASK_COVERAGE'):
-    import coverage
-    COV = coverage.coverage(branch=True, include='PilosusBot/*')
-    COV.start()
 
 
 @manager.command

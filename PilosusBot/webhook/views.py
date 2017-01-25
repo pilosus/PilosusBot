@@ -81,9 +81,6 @@ def handle_webhook():
     # parse incoming Update
     parsed_update = parse_update(update)
 
-    # to be returned by the view
-    result = {'ok': None, 'error': None}
-
     # if Update contains 'text', 'chat_id', 'message_id' then process it with Celery chain
     if parsed_update_can_be_processed(parsed_update):
         celery_chain(parsed_update)

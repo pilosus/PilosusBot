@@ -95,7 +95,7 @@ class UtilsTestCase(unittest.TestCase):
         eng = detect_language_code('This is pure English text!')
         rus = detect_language_code('Это текст на русском языке!')
         ger = detect_language_code('Na ja, das ist deutscher Text, glaube ich!')
-        lat = detect_language_code(forgery_py.lorem_ipsum.text())
+        lat = detect_language_code(forgery_py.lorem_ipsum.sentences(5))
         undetected = detect_language_code('A')
 
         self.assertEqual(eng, 'en')
@@ -125,15 +125,32 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(lang_code_to_lang_name('la'), 'Latin')
 
     def test_score_to_closest_level(self):
-        """Assume each level has at least one row in the db
-        """
         lang = 'la'
         self.assertEqual(score_to_closest_level(lang, 0.63, [0.0, 0.25, 0.375, 0.5, 0.625, 0.75, 1.0]), 0.75)
         self.assertEqual(score_to_closest_level(lang, 0.75, [0.0, 0.25, 0.375, 0.5, 0.625, 0.75, 1.0]), 0.75)
         self.assertEqual(score_to_closest_level(lang, 1.0, [0.0, 0.25, 0.375, 0.5, 0.625, 0.75, 1.0]), 1.0)
         self.assertEqual(score_to_closest_level(lang, -1.0, [0.0, 0.25, 0.375, 0.5, 0.625, 0.75, 1.0]), 0.0)
         self.assertEqual(score_to_closest_level(lang, 2.5, [0.0, 0.25, 0.375, 0.5, 0.625]), 0.625,
-                         'Go backward if no sentiments found for the given score or higher')
+                         'Fail to go backward when searching for the score level')
+
+        # remove sentiments of the given score
+        db.session.query(Sentiment).filter(Sentiment.score == 0.625).delete()
+        self.assertEqual(score_to_closest_level(lang, 0.53, [0.0, 0.25, 0.375, 0.5, 0.625]), 0.5)
+
+        db.session.query(Sentiment).filter(Sentiment.score == 0.5).delete()
+        self.assertEqual(score_to_closest_level(lang, 0.53, [0.0, 0.25, 0.375, 0.5, 0.625]), 0.375)
+
+        db.session.query(Sentiment).filter(Sentiment.score == 0.375).delete()
+        self.assertEqual(score_to_closest_level(lang, 0.53, [0.0, 0.25, 0.375, 0.5, 0.625]), 0.25)
+
+        db.session.query(Sentiment).filter(Sentiment.score == 0.25).delete()
+        self.assertEqual(score_to_closest_level(lang, 1.0, [0.0, 0.25, 0.375, 0.5, 0.625]), 0.0)
+
+        db.session.query(Sentiment).filter(Sentiment.score == 0.0).delete()
+        self.assertEqual(score_to_closest_level(lang, 0.8, [0.0, 0.25, 0.375, 0.5, 0.625]), 0.0)
+
+        # do not commit changes
+        db.session.rollback()
 
     def test_get_rough_sentiment_score(self):
         self.assertAlmostEqual(get_rough_sentiment_score('This is a neutral sentence'), 0.5, places=3)
