@@ -44,7 +44,9 @@ def set_webhook(action):
     # see https://core.telegram.org/bots/webhooks
     if current_app.config['SERVER_PUBLIC_KEY']:
         # open public key in binary mode
-        payload['certificate'] = open(current_app.config['SERVER_PUBLIC_KEY'], 'rb')
+        certificate = {'certificate': open(current_app.config['SERVER_PUBLIC_KEY'], 'rb')}
+    else:
+        certificate = None
 
     # response
     context = {'ok': None, 'error_code': None, 'description': None, 'url': url}
@@ -52,8 +54,9 @@ def set_webhook(action):
     # make a request to telegram API, catch exceptions if any, return status
     try:
         # set timeout to 120s, since we want server to unset bot even under high load/DDoS
-        response = requests.post(current_app.config['TELEGRAM_URL'] + 'setWebhook',
+        response = requests.post(url=current_app.config['TELEGRAM_URL'] + 'setWebhook',
                                  json=payload,
+                                 files=certificate,
                                  timeout=current_app.config['TELEGRAM_REQUEST_TIMEOUT_SEC'] * 60)
     except requests.exceptions.RequestException as err:
         context['ok'] = False
