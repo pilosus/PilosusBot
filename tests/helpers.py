@@ -3,17 +3,16 @@ import forgery_py
 import math
 import random
 import sys
-
 from flask import url_for, current_app
 
 
 class TelegramUpdates(object):
-    URL_HANDLE_WEBHOOK = url_for('webhook.handle_webhook')
+    URL_HANDLE_WEBHOOK = url_for('webhook.handle_webhook', _external=True)
     URL_SET_WEBHOOK = url_for('webhook.set_webhook', action='set', _external=True)
     URL_UNSET_WEBHOOK = url_for('webhook.set_webhook', action='unset', _external=True)
     HEADERS = {'Content-Type': 'application/json'}
     UPDATE_ID = random.randint(100, sys.maxsize)
-    TEXT_BIT = forgery_py.lorem_ipsum.sentence()
+    TEXT_BIT = forgery_py.lorem_ipsum.sentences(5)[:current_app.config['APP_UPDATE_TEXT_THRESHOLD_LEN']]
     TEXT = TEXT_BIT * math.ceil(current_app.config['APP_UPDATE_TEXT_THRESHOLD_LEN'] / len(TEXT_BIT))
 
     EMPTY = {}
@@ -143,6 +142,18 @@ class TelegramUpdates(object):
     }
 
 
+class MockResponse(object):
+    """
+    Mimic requests.post response with status_code attribute and json() method
+    """
+    def __init__(self, json_data, status_code):
+        self.json_data = json_data
+        self.status_code = status_code
+
+    def json(self):
+        return self.json_data
+
+
 class HTTP(object):
     @staticmethod
     def basic_auth(login, password):
@@ -155,3 +166,20 @@ class HTTP(object):
         auth_str = '{login}:{password}'.format(login=login, password=password).encode('ascii')
         auth_str_b64_encoded = base64.b64encode(auth_str).decode('ascii')
         return 'Authorization', 'Basic ' + auth_str_b64_encoded
+
+    @staticmethod
+    def mocked_requests_post(url, json, files, timeout):
+        """
+        The method is called with the same arguments that original requests.post is called.
+
+        Set status code as an attribute to mimic requests.post API.
+        Given JSON extended with the keys Telegram uses in reply.
+        """
+        # this is Python 3.5+
+        # we need to extend
+        data = {**json, **{'ok': False, 'error_code': 400, 'description': None}}
+        return MockResponse(data, 200)
+
+    @staticmethod
+    def mocked_indicoio():
+        pass
