@@ -2,10 +2,14 @@ import os
 import tempfile
 import unittest
 from unittest.mock import patch, call
-from flask import current_app, json, url_for
+from flask import current_app, json, url_for, g
 from werkzeug.datastructures import Headers
 from PilosusBot import create_app, db
 from PilosusBot.models import Language, Role, Sentiment, User
+from PilosusBot.exceptions import ValidationError
+from PilosusBot.webhook.errors import page_not_found, method_not_allowed, \
+    internal_server_error
+from PilosusBot.webhook.authentication import auth_error
 from tests.helpers import TelegramUpdates, HTTP
 
 
@@ -519,3 +523,146 @@ class WebhooksTestCase(unittest.TestCase):
         self.assertEqual(response_json['error_code'], 599,
                          'Failed to return error code 599 when RequestException is thrown')
         mock_requests.assert_called()
+
+    def test_unauthorized_access_to_get_token(self):
+        response = self.client.get(url_for('webhook.get_token'),
+                                   data=json.dumps(TelegramUpdates.EMPTY),
+                                   follow_redirects=True,
+                                   headers=TelegramUpdates.HEADERS)
+
+        self.assertEqual(response.status_code, 401,
+                         'Failed to forbid access for a non-authorized user')
+
+    def test_authorized_access_to_get_token(self):
+        admin_role = Role.query.filter_by(name='Administrator').first()
+        admin = User(email='admin@example.com',
+                     username='admin',
+                     role=admin_role,
+                     password='test',
+                     confirmed=True,
+                     )
+        db.session.add(admin)
+        db.session.commit()
+
+        headers = Headers()
+        headers.add(*HTTP.basic_auth('admin@example.com', 'test'))
+
+        response = self.client.get(url_for('webhook.get_token'),
+                                   data=json.dumps(TelegramUpdates.EMPTY),
+                                   follow_redirects=True,
+                                   headers=headers)
+
+        self.assertEqual(response.status_code, 200,
+                         'Failed to give access for a valid authorized user')
+
+        response_json = json.loads(response.data)
+        self.assertEqual(response_json['expiration'], 3600)
+
+    def test_login_required_blank_password(self):
+        admin_role = Role.query.filter_by(name='Administrator').first()
+        admin = User(email='admin@example.com',
+                     username='admin',
+                     role=admin_role,
+                     password='test',
+                     confirmed=True,
+                     )
+        db.session.add(admin)
+        db.session.commit()
+
+        headers = Headers()
+        headers.add(*HTTP.basic_auth('admin@example.com', ''))
+
+        response = self.client.post(TelegramUpdates.URL_UNSET_WEBHOOK,
+                                    data=json.dumps({}),
+                                    follow_redirects=True,
+                                    headers=headers)
+
+        self.assertEqual(response.status_code, 403,
+                         'Failed to return status code 403 '
+                         'when unsetting Webhook URL by the '
+                         'valid user with blank password')
+
+    def test_login_required_incorrect_password(self):
+        admin_role = Role.query.filter_by(name='Administrator').first()
+        admin = User(email='admin@example.com',
+                     username='admin',
+                     role=admin_role,
+                     password='test',
+                     confirmed=True,
+                     )
+        db.session.add(admin)
+        db.session.commit()
+
+        headers = Headers()
+        headers.add(*HTTP.basic_auth('admin@example.com', 'wrong'))
+
+        response = self.client.post(TelegramUpdates.URL_UNSET_WEBHOOK,
+                                    data=json.dumps({}),
+                                    follow_redirects=True,
+                                    headers=headers)
+
+        self.assertEqual(response.status_code, 403,
+                         'Failed to return status code 403 '
+                         'when unsetting Webhook URL by the '
+                         'valid user with incorrect password')
+
+    def test_login_required_incorrect_username(self):
+        admin_role = Role.query.filter_by(name='Administrator').first()
+        admin = User(email='admin@example.com',
+                     username='admin',
+                     role=admin_role,
+                     password='test',
+                     confirmed=True,
+                     )
+        db.session.add(admin)
+        db.session.commit()
+
+        headers = Headers()
+        headers.add(*HTTP.basic_auth('incorrect_username', 'test'))
+
+        response = self.client.post(TelegramUpdates.URL_UNSET_WEBHOOK,
+                                    data=json.dumps({}),
+                                    follow_redirects=True,
+                                    headers=headers)
+
+        self.assertEqual(response.status_code, 403,
+                         'Failed to return status code 403 '
+                         'when unsetting Webhook URL by the '
+                         'user with incorrect username')
+
+    @patch('requests.post', side_effect=ValidationError('Boom!', 400))
+    def test_bad_request_response(self, mock_requests):
+        admin_role = Role.query.filter_by(name='Administrator').first()
+        admin = User(email='admin@example.com',
+                     username='admin',
+                     role=admin_role,
+                     password='test',
+                     confirmed=True,
+                     )
+        db.session.add(admin)
+        db.session.commit()
+
+        headers = Headers()
+        headers.add(*HTTP.basic_auth('admin@example.com', 'test'))
+
+        response = self.client.post(TelegramUpdates.URL_SET_WEBHOOK,
+                                    data=json.dumps({}),
+                                    follow_redirects=True,
+                                    headers=headers)
+
+        self.assertEqual(response.status_code, 400,
+                         'Failed to return status code 400 '
+                         'when ValidationError is raised')
+        mock_requests.assert_called()
+
+    def test_webhook_custom_errors_returning_json(self):
+        error_404 = page_not_found('foo')
+        error_405 = method_not_allowed('bar')
+        error_500 = internal_server_error('baz')
+
+        # error functions return flask Response object
+        # http://flask.pocoo.org/docs/0.12/api/#flask.Response
+        self.assertEqual(error_404.status_code, 404)
+        self.assertEqual(error_405.status_code, 405)
+        self.assertEqual(error_500.status_code, 500)
+

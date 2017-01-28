@@ -3,7 +3,7 @@ import forgery_py
 import math
 import random
 import sys
-from flask import url_for, current_app
+from flask import url_for, current_app, jsonify
 
 
 class TelegramUpdates(object):
@@ -176,7 +176,6 @@ class HTTP(object):
         Given JSON extended with the keys Telegram uses in reply.
         """
         # this is Python 3.5+
-        # we need to extend
         data = {**json, **{'ok': False, 'error_code': 400, 'description': None}}
         return MockResponse(data, 200)
 

@@ -43,6 +43,7 @@ def forbidden_error():
 
 
 @webhook.route('/token')
+@auth.login_required
 def get_token():
     if g.current_user.is_anonymous or g.token_used:
         return unauthorized('Invalid credentials')
