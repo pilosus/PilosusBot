@@ -24,6 +24,8 @@ https://pythonhosted.org/Flask-Testing/
 
 
 class WebhooksTestCase(unittest.TestCase):
+    maxDiff = None
+
     def setUp(self):
         """Method called before each unit-test"""
         # create app, set TESTING flag to disable error catching
@@ -40,7 +42,7 @@ class WebhooksTestCase(unittest.TestCase):
         Role.insert_roles()
         Language.insert_basic_languages()
         User.generate_fake(10)
-        Sentiment.generate_fake(100)
+        Sentiment.generate_fake(25)
 
         # Werkzeug Client to make requests
         self.client = self.app.test_client(use_cookies=True)

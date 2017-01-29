@@ -154,6 +154,16 @@ class MockResponse(object):
         return self.json_data
 
 
+class MockSentiment(object):
+    def __init__(self, body, body_html, score, id=1, author_id=2, language_id=3):
+        self.id = id
+        self.author_id = author_id
+        self.language_id = language_id
+        self.body = body
+        self.body_html = body_html
+        self.score = score
+
+
 class HTTP(object):
     @staticmethod
     def basic_auth(login, password):
@@ -168,7 +178,7 @@ class HTTP(object):
         return 'Authorization', 'Basic ' + auth_str_b64_encoded
 
     @staticmethod
-    def mocked_requests_post(url, json, files, timeout):
+    def mocked_requests_post(url=None, json=None, files=None, timeout=None):
         """
         The method is called with the same arguments that original requests.post is called.
 
