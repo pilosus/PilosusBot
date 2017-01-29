@@ -6,9 +6,8 @@ from PilosusBot.models import Role, Language, User, Sentiment
 from PilosusBot.tasks import celery_chain, assess_message_score, \
     select_db_sentiment, send_message_to_chat
 from PilosusBot.processing import parse_update
-from tests.helpers import HTTP, TelegramUpdates, MockSentiment
+from tests.helpers import HTTP, TelegramUpdates, MockSentiment, MockCappedCollection
 from flask import current_app
-from qr import CappedCollection
 from indicoio.utils.errors import IndicoError
 
 
@@ -38,12 +37,6 @@ class TasksTestCase(unittest.TestCase):
         # Werkzeug Client to make requests
         self.client = self.app.test_client(use_cookies=True)
 
-        # persistent in memory storage for Update IDs
-        self.keys = CappedCollection(key=current_app.config['DEQUE_KEY'],
-                                     size=current_app.config['DEQUE_MAX_LEN'],
-                                     host=current_app.config['DEQUE_HOST'],
-                                     port=current_app.config['DEQUE_PORT'])
-
     def tearDown(self):
         """Method called after each unit-test"""
         # remove current db session
@@ -55,10 +48,7 @@ class TasksTestCase(unittest.TestCase):
         # remove app context
         self.app_context.pop()
 
-        # remove keys, so that the same Update can be used across the tests
-        for _ in range(len(self.keys.elements())):
-            self.keys.pop()
-
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.tasks.indicoio', autospec=True)
     def test_assess_message_score(self, mock_indicoio):
         mock_indicoio.sentiment.return_value = 0.87654321
@@ -75,6 +65,7 @@ class TasksTestCase(unittest.TestCase):
         self.assertEqual(mock_indicoio.config.api_key, current_app.config['INDICO_TOKEN'])
         mock_indicoio.sentiment.assert_called_with(parsed_update['text'], language='latin')
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.tasks.get_rough_sentiment_score')
     @patch('PilosusBot.tasks.indicoio', autospec=True)
     def test_assess_message_score_raise_exception(self, mock_indicoio, mock_rough_score):
@@ -94,6 +85,7 @@ class TasksTestCase(unittest.TestCase):
         self.assertEqual(mock_indicoio.config.api_key, current_app.config['INDICO_TOKEN'])
         mock_indicoio.sentiment.assert_called_with(parsed_update['text'], language='latin')
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     def test_select_db_sentiment(self):
         parsed_update = parse_update(TelegramUpdates.TEXT_OK_ID_OK_TEXT)
         parsed_update['score'] = 0.678
@@ -109,6 +101,7 @@ class TasksTestCase(unittest.TestCase):
         self.assertNotEqual(result['text'], not_expected_sentiment.body_html)
         self.assertEqual(result['parse_mode'], 'HTML')
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.tasks.random', autospec=True)
     def test_select_db_sentiment_plain_text(self, mock_random):
         mock_sentiment = MockSentiment(body='hello', body_html=None, score=0.678)
@@ -126,6 +119,7 @@ class TasksTestCase(unittest.TestCase):
         self.assertNotEqual(result['text'], not_expected_sentiment.body_html)
         mock_random.choice.assert_called()
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('requests.post', side_effect=HTTP.mocked_requests_post)
     def test_send_message_to_chat(self, mock_requests):
         parsed_update = parse_update(TelegramUpdates.TEXT_OK_ID_OK_TEXT)
@@ -154,6 +148,7 @@ class TasksTestCase(unittest.TestCase):
         self.assertEqual(result['error_code'], 599)
         self.assertEqual(result['description'], 'Boom!')
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.tasks.assess_message_score.s')
     @patch('PilosusBot.tasks.select_db_sentiment.s')
     @patch('PilosusBot.tasks.send_message_to_chat.s')
@@ -172,6 +167,3 @@ class TasksTestCase(unittest.TestCase):
         mock_assess.assert_called_with(parsed_update)
         mock_select.assert_called_with()
         mock_send.assert_called_with()
-
-    def test_finish(self):
-        self.fail('Finish tests!')

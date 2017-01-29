@@ -2,15 +2,15 @@ import os
 import tempfile
 import unittest
 from unittest.mock import patch, call
-from flask import current_app, json, url_for, g
+from flask import current_app, json, url_for
 from werkzeug.datastructures import Headers
 from PilosusBot import create_app, db
 from PilosusBot.models import Language, Role, Sentiment, User
 from PilosusBot.exceptions import ValidationError
 from PilosusBot.webhook.errors import page_not_found, method_not_allowed, \
     internal_server_error
-from PilosusBot.webhook.authentication import auth_error
-from tests.helpers import TelegramUpdates, HTTP
+from tests.helpers import TelegramUpdates, HTTP, MockCappedCollection
+from qr import CappedCollection
 
 
 """
@@ -64,19 +64,13 @@ class WebhooksTestCase(unittest.TestCase):
     def test_app_is_testing(self):
         self.assertTrue(current_app.config['TESTING'])
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.webhook.views.celery_chain')
     @patch('PilosusBot.webhook.views.send_message_to_chat')
     def test_handle_only_post(self, mocked_send_to_chat, mocked_celery_chain):
         response = self.client.get(TelegramUpdates.URL_HANDLE_WEBHOOK)
         self.assertTrue(response.status_code == 405,
                         'Failed to restrict allowed method to POST only')
-
-        with self.assertRaises(AssertionError) as send_err:
-            mocked_send_to_chat.assert_called()
-
-        self.assertIn("Expected 'send_message_to_chat' to have been called",
-                      str(send_err.exception))
-        self.assertEqual(mocked_send_to_chat.call_args_list, [])
 
         with self.assertRaises(AssertionError) as chain_err:
             mocked_celery_chain.assert_called()
@@ -85,6 +79,7 @@ class WebhooksTestCase(unittest.TestCase):
                       str(chain_err.exception))
         self.assertEqual(mocked_celery_chain.call_args_list, [])
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.webhook.views.celery_chain')
     @patch('PilosusBot.webhook.views.send_message_to_chat')
     def test_handle_empty_input(self, mocked_send_to_chat, mocked_celery_chain):
@@ -99,12 +94,7 @@ class WebhooksTestCase(unittest.TestCase):
         self.assertEqual({}, json.loads(response.data),
                          'Failed to return an empty JSON for empty input')
 
-        with self.assertRaises(AssertionError) as send_err:
-            mocked_send_to_chat.assert_called()
-
-        self.assertIn("Expected 'send_message_to_chat' to have been called",
-                      str(send_err.exception))
-        self.assertEqual(mocked_send_to_chat.call_args_list, [])
+        mocked_send_to_chat.apply_async.assert_called_with(args=[{}])
 
         with self.assertRaises(AssertionError) as chain_err:
             mocked_celery_chain.assert_called()
@@ -113,6 +103,7 @@ class WebhooksTestCase(unittest.TestCase):
                       str(chain_err.exception))
         self.assertEqual(mocked_celery_chain.call_args_list, [])
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.webhook.views.celery_chain')
     @patch('PilosusBot.webhook.views.send_message_to_chat')
     def test_handle_bad_id_bad_text(self, mocked_send_to_chat, mocked_celery_chain):
@@ -127,12 +118,7 @@ class WebhooksTestCase(unittest.TestCase):
                          'Failed to return an empty JSON for an Update with '
                          'bad reply_message_id and bad text length')
 
-        with self.assertRaises(AssertionError) as send_err:
-            mocked_send_to_chat.assert_called()
-
-        self.assertIn("Expected 'send_message_to_chat' to have been called",
-                      str(send_err.exception))
-        self.assertEqual(mocked_send_to_chat.call_args_list, [])
+        mocked_send_to_chat.apply_async.assert_called_with(args=[{}])
 
         with self.assertRaises(AssertionError) as chain_err:
             mocked_celery_chain.assert_called()
@@ -141,6 +127,7 @@ class WebhooksTestCase(unittest.TestCase):
                       str(chain_err.exception))
         self.assertEqual(mocked_celery_chain.call_args_list, [])
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.webhook.views.celery_chain')
     @patch('PilosusBot.webhook.views.send_message_to_chat')
     def test_handle_ok_id_bad_text(self, mocked_send_to_chat, mocked_celery_chain):
@@ -155,12 +142,7 @@ class WebhooksTestCase(unittest.TestCase):
                          'Failed to return an empty JSON for an Update with '
                          'bad text length')
 
-        with self.assertRaises(AssertionError) as send_err:
-            mocked_send_to_chat.assert_called()
-
-        self.assertIn("Expected 'send_message_to_chat' to have been called",
-                      str(send_err.exception))
-        self.assertEqual(mocked_send_to_chat.call_args_list, [])
+        mocked_send_to_chat.apply_async.assert_called_with(args=[{}])
 
         with self.assertRaises(AssertionError) as chain_err:
             mocked_celery_chain.assert_called()
@@ -169,6 +151,7 @@ class WebhooksTestCase(unittest.TestCase):
                       str(chain_err.exception))
         self.assertEqual(mocked_celery_chain.call_args_list, [])
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.webhook.views.celery_chain')
     @patch('PilosusBot.webhook.views.send_message_to_chat')
     def test_handle_bad_id_ok_text(self, mocked_send_to_chat, mocked_celery_chain):
@@ -182,12 +165,8 @@ class WebhooksTestCase(unittest.TestCase):
         self.assertEqual({}, json.loads(response.data),
                          'Failed to return an empty JSON for an Update with '
                          'bad reply_message_id')
-        with self.assertRaises(AssertionError) as send_err:
-            mocked_send_to_chat.assert_called()
 
-        self.assertIn("Expected 'send_message_to_chat' to have been called",
-                      str(send_err.exception))
-        self.assertEqual(mocked_send_to_chat.call_args_list, [])
+        mocked_send_to_chat.apply_async.assert_called_with(args=[{}])
 
         with self.assertRaises(AssertionError) as chain_err:
             mocked_celery_chain.assert_called()
@@ -196,6 +175,7 @@ class WebhooksTestCase(unittest.TestCase):
                       str(chain_err.exception))
         self.assertEqual(mocked_celery_chain.call_args_list, [])
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.webhook.views.celery_chain')
     @patch('PilosusBot.webhook.views.send_message_to_chat')
     def test_handle_malformed_Message(self, mocked_send_to_chat, mocked_celery_chain):
@@ -209,12 +189,8 @@ class WebhooksTestCase(unittest.TestCase):
         self.assertEqual({}, json.loads(response.data),
                          'Failed to return an empty JSON for an Update with '
                          'a malformed Message')
-        with self.assertRaises(AssertionError) as send_err:
-            mocked_send_to_chat.assert_called()
 
-        self.assertIn("Expected 'send_message_to_chat' to have been called",
-                      str(send_err.exception))
-        self.assertEqual(mocked_send_to_chat.call_args_list, [])
+        mocked_send_to_chat.apply_async.assert_called_with(args=[{}])
 
         with self.assertRaises(AssertionError) as chain_err:
             mocked_celery_chain.assert_called()
@@ -223,6 +199,7 @@ class WebhooksTestCase(unittest.TestCase):
                       str(chain_err.exception))
         self.assertEqual(mocked_celery_chain.call_args_list, [])
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('PilosusBot.webhook.views.celery_chain')
     @patch('PilosusBot.webhook.views.send_message_to_chat')
     def test_handle_malformed_Chat_of_Message(self, mocked_send_to_chat, mocked_celery_chain):
@@ -236,12 +213,8 @@ class WebhooksTestCase(unittest.TestCase):
         self.assertEqual({}, json.loads(response.data),
                          'Failed to return an empty JSON for an Update with '
                          'a malformed Chat of the Message')
-        with self.assertRaises(AssertionError) as send_err:
-            mocked_send_to_chat.assert_called()
 
-        self.assertIn("Expected 'send_message_to_chat' to have been called",
-                      str(send_err.exception))
-        self.assertEqual(mocked_send_to_chat.call_args_list, [])
+        mocked_send_to_chat.apply_async.assert_called_with(args=[{}])
 
         with self.assertRaises(AssertionError) as chain_err:
             mocked_celery_chain.assert_called()
@@ -250,6 +223,7 @@ class WebhooksTestCase(unittest.TestCase):
                       str(chain_err.exception))
         self.assertEqual(mocked_celery_chain.call_args_list, [])
 
+    @patch.object(CappedCollection, 'elements', lambda *args, **kwargs: [TelegramUpdates.UPDATE_ID])
     @patch('PilosusBot.webhook.views.celery_chain')
     @patch('PilosusBot.webhook.views.send_message_to_chat')
     def test_handle_update_id_already_used(self, mocked_send_to_chat, mocked_celery_chain):
@@ -259,9 +233,9 @@ class WebhooksTestCase(unittest.TestCase):
         mocked_celery_chain.return_value = None
 
         response = self.client.post(TelegramUpdates.URL_HANDLE_WEBHOOK,
-                                    data=json.dumps(TelegramUpdates.TEXT_SAME_UPDATE_ID),
-                                    follow_redirects=True,
-                                    headers=TelegramUpdates.HEADERS)
+                                     data=json.dumps(TelegramUpdates.TEXT_SAME_UPDATE_ID),
+                                     follow_redirects=True,
+                                     headers=TelegramUpdates.HEADERS)
         self.assertTrue(response.status_code == 200,
                         'Failed to return status code 200 for an Update with '
                         'an ID already used')
@@ -269,12 +243,7 @@ class WebhooksTestCase(unittest.TestCase):
                          'Failed to return an empty JSON for an Update with '
                          'an ID already used')
 
-        with self.assertRaises(AssertionError) as send_err:
-            mocked_send_to_chat.assert_called()
-
-        self.assertIn("Expected 'send_message_to_chat' to have been called",
-                      str(send_err.exception))
-        self.assertEqual(mocked_send_to_chat.call_args_list, [])
+        mocked_send_to_chat.apply_async.assert_called_with(args=[{}])
 
         with self.assertRaises(AssertionError) as chain_err:
             mocked_celery_chain.assert_called()
@@ -283,6 +252,7 @@ class WebhooksTestCase(unittest.TestCase):
                       str(chain_err.exception))
         self.assertEqual(mocked_celery_chain.call_args_list, [])
 
+    @patch('PilosusBot.processing.CappedCollection', MockCappedCollection.get_mock())
     @patch('PilosusBot.webhook.views.celery_chain')
     @patch('PilosusBot.webhook.views.send_message_to_chat')
     def test_handle_valid_input(self, mocked_send_to_chat, mocked_celery_chain):
@@ -365,6 +335,7 @@ class WebhooksTestCase(unittest.TestCase):
 
         self.assertIn("Expected 'post' to have been called", str(err.exception))
 
+    @patch('PilosusBot.processing.CappedCollection', new=MockCappedCollection)
     @patch('requests.post', side_effect=HTTP.mocked_requests_post)
     def test_sethook_administrator_user(self, mock_requests):
         admin_role = Role.query.filter_by(name='Administrator').first()

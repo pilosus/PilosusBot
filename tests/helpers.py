@@ -1,9 +1,11 @@
 import base64
+from collections import deque
 import forgery_py
 import math
 import random
 import sys
 from flask import url_for, current_app, jsonify
+from unittest.mock import MagicMock
 
 
 class TelegramUpdates(object):
@@ -162,6 +164,37 @@ class MockSentiment(object):
         self.body = body
         self.body_html = body_html
         self.score = score
+
+
+class MockCappedCollection(deque):
+    """
+    Mocked CappedCollection based one collections.deque.
+
+    It used to exclude running Redis while unittesting
+    (we are testing neither CappedCollection nor Redis after all!)
+    """
+    def __init__(self, *args, **kwargs):
+        # add new attributes
+        self.key = kwargs.get('key', None)
+        self.size = kwargs.get('size', None)
+        self.host = kwargs.get('host', None)
+        self.port = kwargs.get('port', None)
+        # inherit attributes from deque class
+        super(self.__class__, self).__init__(maxlen=self.size)
+
+    def elements(self):
+        return list(iter(self))
+
+    def push(self, item):
+        self.append(item)
+
+    @staticmethod
+    def get_mock():
+        mock_config = {'elements.side_effect': lambda *args, **kwargs: [TelegramUpdates.UPDATE_ID],
+                       'side_effect': MockCappedCollection}
+        mock_capped = MagicMock(spec=MockCappedCollection)
+        mock_capped.configure_mock(**mock_config)
+        return mock_capped
 
 
 class HTTP(object):
