@@ -325,11 +325,7 @@ class Language(db.Model):
 
 class Sentiment(db.Model):
     """
-    Sentiment with given polarity (is_negative).
-
-    If is_negative True, then sentiment is negative (polarity is -1).
-    Else if is_negative False, then sentiment is positive (polarity is +1).
-    Else if is_negative is None, then sentiment is neutral (polarity 0).
+    Sentiment with given sentiment score (polarity index).
     """
     __tablename__ = 'sentiments'
     id = db.Column(db.Integer, primary_key=True)
@@ -382,8 +378,8 @@ class Sentiment(db.Model):
             'body': self.body,
             'body_html': self.body_html,
             'timestamp': self.timestamp,
-            'author': url_for('api.get_user', id=self.author_id,
-                              _external=True),
+            #'author': url_for('api.get_user', id=self.author_id,
+            #                  _external=True),  # TODO
         }
         return json_sentiment
 
