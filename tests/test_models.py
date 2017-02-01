@@ -12,7 +12,7 @@ from flask import current_app, request
 
 class ModelsTestCase(unittest.TestCase):
     maxDiff = None
-    
+
     def setUp(self):
         """Method called before each unit-test"""
         # create app, set TESTING flag to disable error catching
