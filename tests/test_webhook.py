@@ -307,6 +307,23 @@ class WebhooksTestCase(unittest.TestCase):
         self.assertIn("Expected 'post' to have been called", str(err.exception))
 
     @patch('requests.post', side_effect=HTTP.mocked_requests_post)
+    def test_sethook_not_authenticated_user_json(self, mock_requests):
+        headers = Headers()
+        headers.add('Accept', 'application/json')
+
+        response = self.client.post(TelegramUpdates.URL_SET_WEBHOOK,
+                                    data=json.dumps(TelegramUpdates.EMPTY),
+                                    follow_redirects=True,
+                                    headers=headers)
+
+        self.assertEqual(response.status_code, 403,
+                         'Failed to forbid access for a non-authenticated user')
+
+        self.assertEqual('forbidden, webhook error handler',
+                         json.loads(response.data)['error'],
+                         'Failed to raise blueprint-wide 403 error.')
+
+    @patch('requests.post', side_effect=HTTP.mocked_requests_post)
     def test_sethook_moderator_user(self, mock_requests):
         moderator_role = Role.query.filter_by(name='Moderator').first()
         moderator = User(email='moderator@example.com',
