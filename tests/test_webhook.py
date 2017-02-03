@@ -7,8 +7,6 @@ from werkzeug.datastructures import Headers
 from PilosusBot import create_app, db
 from PilosusBot.models import Language, Role, Sentiment, User
 from PilosusBot.exceptions import ValidationError
-from PilosusBot.webhook.errors import page_not_found, method_not_allowed, \
-    internal_server_error
 from tests.helpers import TelegramUpdates, HTTP, MockCappedCollection
 from qr import CappedCollection
 
@@ -628,14 +626,4 @@ class WebhooksTestCase(unittest.TestCase):
                          'when ValidationError is raised')
         mock_requests.assert_called()
 
-    def test_webhook_custom_errors_returning_json(self):
-        error_404 = page_not_found('foo')
-        error_405 = method_not_allowed('bar')
-        error_500 = internal_server_error('baz')
-
-        # error functions return flask Response object
-        # http://flask.pocoo.org/docs/0.12/api/#flask.Response
-        self.assertEqual(error_404.status_code, 404)
-        self.assertEqual(error_405.status_code, 405)
-        self.assertEqual(error_500.status_code, 500)
 

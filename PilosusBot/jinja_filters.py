@@ -1,6 +1,7 @@
 from flask import current_app
 from .utils import lang_code_to_lang_name
 
+
 def permissions2str(n):
     """Convert permission representation into a string representation.
 
