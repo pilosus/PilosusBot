@@ -4,7 +4,7 @@ import forgery_py
 import math
 import random
 import sys
-from flask import url_for, current_app, jsonify
+from flask import url_for, current_app
 from unittest.mock import MagicMock
 
 
