@@ -94,7 +94,8 @@ def confirm(token):
 def resend_confirmation():
     token = current_user.generate_confirmation_token()
     send_email(current_user.email, 'Confirm Your Account',
-               'auth/email/confirm', user=current_user, token=token)
+               'auth/email/confirm', user=current_user._get_current_object(),
+               token=token)
     flash('A new confirmation email has been sent to you by email.', 'info')
     return redirect(url_for('info.index'))
 
@@ -194,11 +195,10 @@ def invite_accept(id, token):
     if user is None:
         flash('You are not among the invitees.', 'danger')
         return redirect(url_for('info.index'))
-    else:
-        if user.confirmed:
-            flash('You have previously confirmed your account. Please log in.',
-                  'info')
-            return redirect(url_for('auth.login'))
+    if user.confirmed:
+        flash('You have previously confirmed your account. Please log in.',
+              'info')
+        return redirect(url_for('auth.login'))
     if form.validate_on_submit():
         if user.accept_invite(token=token,
                               username=form.username.data,
@@ -242,6 +242,7 @@ def change_email(token):
 
 # user profile
 @auth.route('/user/<username>')
+@permission_required(Permission.MODERATE)
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
     page = request.args.get('page', 1, type=int)

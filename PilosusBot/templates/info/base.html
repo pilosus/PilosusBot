@@ -46,9 +46,10 @@
                         {{ current_user.username }} <b class="caret"></b>
                     </a>
                     <ul class="dropdown-menu">
-                      <li {% if subpage == 'change_password' %}class="active"{% endif %}><a href="{{ url_for('auth.change_password') }}">Change Password</a></li>
-                      <li {% if subpage == 'change_email' %}class="active"{% endif %}><a href="{{ url_for('auth.change_email_request') }}">Change Email</a></li>
-                      <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
+                        <li><a href="{{ url_for('auth.user', username=current_user.username) }}">Profile</a></li>
+                        <li {% if subpage == 'change_password' %}class="active"{% endif %}><a href="{{ url_for('auth.change_password') }}">Change Password</a></li>
+                        <li {% if subpage == 'change_email' %}class="active"{% endif %}><a href="{{ url_for('auth.change_email_request') }}">Change Email</a></li>
+                        <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
                     </ul>
                 </li>
                 {% else %}

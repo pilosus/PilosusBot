@@ -10,6 +10,11 @@ from PilosusBot.exceptions import ValidationError
 from flask import current_app, request
 
 
+# TODO
+# use hardcoded usernames, emails, etc. instead of forgery_py
+# pseudo-random generators, as generators return the same thing,
+# when tests run fast enough, resulting in test errors
+# (duplicate keys for models with UNIQUE constrains)
 class ModelsTestCase(unittest.TestCase):
     maxDiff = None
 
