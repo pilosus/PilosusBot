@@ -6,6 +6,9 @@ import random
 import sys
 from flask import url_for, current_app
 from unittest.mock import MagicMock
+from PilosusBot.admin.forms import SentimentForm
+from wtforms import TextAreaField
+from PilosusBot.models import Sentiment
 
 
 class TelegramUpdates(object):
@@ -224,4 +227,14 @@ class HTTP(object):
 
     @staticmethod
     def mocked_indicoio():
+        pass
+
+
+class MockSentimentForm(SentimentForm):
+    body = TextAreaField('Text')
+
+
+class MockSentimentModel(Sentiment):
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
         pass

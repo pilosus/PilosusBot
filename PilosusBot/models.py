@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from markdown import markdown
@@ -9,6 +9,7 @@ from .exceptions import ValidationError
 from flask_login import UserMixin, AnonymousUserMixin
 from . import db, login_manager
 from .utils import generate_password
+from PilosusBot.utils import is_valid_lang_code
 
 
 class Permission:
@@ -337,7 +338,8 @@ class Sentiment(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     @staticmethod
-    def generate_fake(count=100, subsequent_scores=True, levels=None):
+    def generate_fake(count=100, subsequent_scores=True, levels=None,
+                      language_code='la', random_timestamp=False):
         from random import seed, randint, choice
         import forgery_py
 
@@ -346,6 +348,14 @@ class Sentiment(db.Model):
 
         if not levels:
             levels = list(current_app.config['APP_SCORE_LEVELS'].keys())
+
+        if not is_valid_lang_code(language_code):
+            language_code = 'la'
+
+        if random_timestamp:
+            timestamp = forgery_py.date.datetime(past=True)
+        else:
+            timestamp = datetime.utcnow()
 
         for i in range(count):
             user = User.query.offset(randint(0, user_count - 1)).first()
@@ -358,8 +368,8 @@ class Sentiment(db.Model):
             p = Sentiment(body=forgery_py.lorem_ipsum.sentences(randint(1, 5)),
                           score=score,
                           author=user,
-                          language=Language.query.filter_by(code='la').first(),
-                          timestamp=forgery_py.date.date(True),
+                          language=Language.query.filter_by(code=language_code).first(),
+                          timestamp=timestamp - timedelta(i),
                           )
             db.session.add(p)
             db.session.commit()
