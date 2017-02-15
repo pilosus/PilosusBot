@@ -27,7 +27,7 @@ login_manager = LoginManager()
 login_manager.session_protection = 'strong'
 login_manager.login_view = 'auth.login'
 login_manager.login_message_category = 'warning'
-sentry = Sentry(dsn=Config.SENTRY_DSN)
+sentry = Sentry()
 
 
 def create_app(config_name):
@@ -48,7 +48,9 @@ def create_app(config_name):
     pagedown.init_app(app)
     csrf.init_app(app)
     celery.conf.update(app.config)
-    sentry.init_app(app)
+    sentry.init_app(app, dsn=app.config['SENTRY_DSN_SECRET'],
+                    logging=app.config['SENTRY_LOGGING'],
+                    level=app.config['SENTRY_LOGGING_LEVEL'])
 
     # change jquery version with another CDN
     app.extensions['bootstrap']['cdns']['jquery'] = WebCDN(

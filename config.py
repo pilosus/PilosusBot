@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 import os
 import re
 from dotenv import load_dotenv
@@ -28,7 +29,11 @@ class Config:
     TELEGRAM_URL = "https://api.telegram.org/bot{key}/".\
         format(key=TELEGRAM_TOKEN)
     TELEGRAM_REQUEST_TIMEOUT_SEC = int(os.environ.get('TELEGRAM_REQUEST_TIMEOUT_SEC', 2))
-    SENTRY_DSN = os.environ.get('SENTRY_DSN')
+    SENTRY_DSN_SECRET = os.environ.get('SENTRY_DSN_SECRET')
+    SENTRY_DSN_PUBLIC = os.environ.get('SENTRY_DSN_PUBLIC')
+    SENTRY_USER_ATTRS = ['username', 'email']
+    SENTRY_LOGGING = False
+    SENTRY_LOGGING_LEVEL = logging.CRITICAL
 
     SERVER_PUBLIC_KEY = os.environ.get('SERVER_PUBLIC_KEY', None)
     SERVER_MAX_CONNECTIONS = int(os.environ.get('SERVER_MAX_CONNECTIONS', 40))
@@ -129,29 +134,32 @@ class ProductionConfig(Config):
     """
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
                               'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+    SENTRY_LOGGING = True
+    SENTRY_LOGGING_LEVEL = logging.ERROR
 
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
-
         # email errors to the administrators
-        import logging
-        from logging.handlers import SMTPHandler
-        credentials = None
-        secure = None
-        if getattr(cls, 'MAIL_USERNAME', None) is not None:
-            credentials = (cls.MAIL_USERNAME, cls.MAIL_PASSWORD)
-            if getattr(cls, 'MAIL_USE_TLS', None):
-                secure = ()
-        mail_handler = SMTPHandler(
-            mailhost=(cls.MAIL_SERVER, cls.MAIL_PORT),
-            fromaddr=cls.PILI_MAIL_SENDER,
-            toaddrs=[cls.PILI_ADMIN],
-            subject=cls.PILI_MAIL_SUBJECT_PREFIX + ' Application Error',
-            credentials=credentials,
-            secure=secure)
-        mail_handler.setLevel(logging.ERROR)
-        app.logger.addHandler(mail_handler)
+
+        # setup Python's logging handler if Sentry's not used
+        if not cls.SENTRY_DSN_SECRET:
+            from logging.handlers import SMTPHandler
+            credentials = None
+            secure = None
+            if getattr(cls, 'MAIL_USERNAME', None) is not None:
+                credentials = (cls.MAIL_USERNAME, cls.MAIL_PASSWORD)
+                if getattr(cls, 'MAIL_USE_TLS', None):
+                    secure = ()
+            mail_handler = SMTPHandler(
+                mailhost=(cls.MAIL_SERVER, cls.MAIL_PORT),
+                fromaddr=cls.MAIL_USERNAME,
+                toaddrs=[cls.APP_ADMIN_EMAIL],
+                subject=cls.APP_MAIL_SUBJECT_PREFIX + ' Application Error',
+                credentials=credentials,
+                secure=secure)
+            mail_handler.setLevel(logging.ERROR)
+            app.logger.addHandler(mail_handler)
 
 
 class HerokuConfig(ProductionConfig):
