@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#############################################################
+### Git post-receive hook example for deploying PilosuBot ###
+#############################################################
+
+### See alo
+### https://www.digitalocean.com/community/tutorials/how-to-use-git-hooks-to-automate-development-and-deployment-tasks
+
+while read oldrev newrev ref
+do
+    if [[ $ref =~ .*/master$ ]];
+    then
+	    echo "Master ref received. Deploying master branch to production..."
+	    git --work-tree=/var/www/bot --git-dir=/home/vrs/git/PilosusBot.git checkout -f
+    else
+	    echo "Ref $ref successfully received. Doing nothing: only the master branch may be deployed on this server."
+    fi
+done

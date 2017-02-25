@@ -1,0 +1,26 @@
+# -*- mode: conf-unix -*-
+
+####################################################
+### uWSGI systemd service example for PilosusBot ###
+####################################################
+
+[Unit]
+Description=uWSGI instance to serve PilosusBot App
+After=network.target bot-celery.service
+
+[Service]
+## set permissions
+User=vrs
+Group=vrs
+
+## working directory and environment variables
+WorkingDirectory=/var/www/bot
+Environment="PATH=/var/www/bot/.venv/bin"
+EnvironmentFile=/var/www/bot/conf/bot-uwsgi.conf
+EnvironmentFile=-/var/www/bot/.env
+
+## start uWSGI with ini file
+ExecStart=/var/www/bot/.venv/bin/uwsgi --ini conf/bot-uwsgi.ini
+
+[Install]
+WantedBy=multi-user.target

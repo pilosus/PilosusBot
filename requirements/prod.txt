@@ -1,0 +1,5 @@
+-r requirements.txt
+Babel==2.3.4
+flower==0.9.1
+tornado==4.2
+uWSGI==2.0.14
